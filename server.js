@@ -135,6 +135,7 @@ function buildAdminView(session) {
     closedAt: r.closedAt,
     bids: r.bids,
     scores: r.scores,
+    bidLog: r.bidLog,
     leaderLabel: r.status === 'closed' ? evaluateRound(session, r).leaderLabel : null,
   }));
 
@@ -352,6 +353,7 @@ const server = http.createServer(async (req, res) => {
         deadlineAt: Date.now() + session.durasiSec * 1000,
         bids: Object.fromEntries(session.vendors.map((vendor) => [vendor.id, null])),
         scores: Object.fromEntries(session.vendors.map((vendor) => [vendor.id, null])),
+        bidLog: [],
         timer: null,
       };
       round.timer = setTimeout(() => closeRoundInternal(session, round), session.durasiSec * 1000);
@@ -435,6 +437,14 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 400, { error: 'Harga harus lebih rendah dari ronde sebelumnya (Rp ' + Number(prevPrice).toLocaleString('id-ID') + ').' });
       }
       r.bids[vendor.id] = val;
+      const evaluation = evaluateRound(session, r);
+      r.bidLog.push({
+        at: Date.now(),
+        vendorId: vendor.id,
+        vendorName: vendor.name,
+        price: val,
+        leaderLabel: evaluation.leaderLabel,
+      });
       let warning = null;
       if (session.hps != null && val > session.hps) warning = 'Peringatan: harga di atas HPS, tetap tersimpan.';
       return sendJson(res, 200, { ok: true, message: warning || 'Harga diterima.', warning: !!warning });

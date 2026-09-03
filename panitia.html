@@ -169,6 +169,14 @@
       </div>
     </div>
 
+    <div class="card">
+      <div class="section-title">Log Masukan Harga Live <span class="dim">Urutan setiap perubahan harga</span></div>
+      <table>
+        <thead><tr><th>Waktu</th><th>Peserta</th><th>Harga Baru</th><th>Unggul Sementara</th></tr></thead>
+        <tbody id="bidEventLogBody"></tbody>
+      </table>
+    </div>
+
     <div class="disclaimer">
       Perhitungan bersifat kalkulasi merit point otomatis. Vendor dengan total merit point tertinggi namun harga akhirnya di atas HPS akan ditandai gugur syarat harga. Hasil ini adalah rekomendasi teknis-finansial, bukan keputusan final pemenang tender.
     </div>
@@ -351,6 +359,10 @@
       const bids = v.vendors.map((vendor)=>vendor.name+': '+fmtMoney(rr.bids[vendor.id])).join(' | ');
       return '<tr><td>Ronde '+rr.num+'</td><td>'+fmtTime(rr.openedAt)+'</td><td>'+fmtTime(rr.closedAt)+'</td><td>'+bids+'</td><td>'+leaderCell+'</td><td>'+statusLabel+'</td></tr>';
     }).join('') || '<tr><td colspan="6" style="color:var(--text-dim);">Belum ada ronde.</td></tr>';
+    const bidEvents = rounds.flatMap((round)=> (round.bidLog || []).map((event)=>({ ...event, round: round.num })));
+    $('bidEventLogBody').innerHTML = bidEvents.length ? bidEvents.slice().reverse().map((event)=>
+      '<tr><td>Ronde '+event.round+' - '+fmtTime(event.at)+'</td><td>'+event.vendorName+'</td><td class="num">'+fmtMoney(event.price)+'</td><td>'+event.leaderLabel+'</td></tr>'
+    ).join('') : '<tr><td colspan="4" style="color:var(--text-dim);">Belum ada masukan harga.</td></tr>';
     $('btnFinish').disabled = !rounds.some(rr=>rr.status==='closed');
   }
 
