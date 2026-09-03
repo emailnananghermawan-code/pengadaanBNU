@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel Panitia — Ruang Bidding Tender Terbatas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B1220; --panel:#121B2E; --panel-2:#0E1626; --line:#24304A;
+    --text:#E8ECF3; --text-dim:#8B96AC; --amber:#F5A623; --green:#34D399; --red:#F87171;
+    --vendorA:#5B8DEF; --vendorB:#F2994A; --radius:3px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  #app{max-width:1180px;margin:0 auto;padding:28px 24px 80px;}
+  header.masthead{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:28px;gap:16px;flex-wrap:wrap;}
+  header.masthead h1{font-size:22px;font-weight:600;margin:0 0 4px;}
+  header.masthead p{margin:0;color:var(--text-dim);font-size:13.5px;max-width:560px;line-height:1.5;}
+  .reset-btn{background:none;border:1px solid var(--line);color:var(--text-dim);padding:8px 14px;border-radius:var(--radius);font-family:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap;}
+  .reset-btn:hover{border-color:var(--text-dim);color:var(--text);}
+  section{margin-bottom:32px;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:22px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  label{display:block;font-size:12.5px;color:var(--text-dim);margin-bottom:6px;}
+  input{width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);padding:10px 12px;border-radius:var(--radius);font-family:'IBM Plex Mono',monospace;font-size:14px;}
+  input:focus{outline:none;border-color:var(--amber);}
+  .field{margin-bottom:16px;}
+  .fieldnote{font-size:11.5px;color:var(--text-dim);margin-top:5px;}
+  .checkrow{display:flex;align-items:center;gap:8px;margin-bottom:16px;}
+  .checkrow input{width:auto;}
+  .checkrow label{margin:0;color:var(--text);font-size:13.5px;}
+  .btn-primary{background:var(--amber);color:#1A1204;border:none;padding:12px 22px;border-radius:var(--radius);font-family:inherit;font-weight:600;font-size:14px;cursor:pointer;}
+  .btn-primary:hover{filter:brightness(1.08);}
+  .btn-primary:disabled{background:var(--line);color:var(--text-dim);cursor:not-allowed;}
+  .btn-secondary{background:none;border:1px solid var(--amber);color:var(--amber);padding:11px 20px;border-radius:var(--radius);font-family:inherit;font-weight:500;font-size:13.5px;cursor:pointer;}
+  .btn-secondary:disabled{border-color:var(--line);color:var(--text-dim);cursor:not-allowed;}
+  .btn-ghost{background:none;border:1px solid var(--line);color:var(--text-dim);padding:9px 16px;border-radius:var(--radius);font-family:inherit;font-size:12.5px;cursor:pointer;}
+  .btn-ghost:hover{color:var(--text);}
+  .btn-copy{background:var(--panel-2);border:1px solid var(--line);color:var(--text);padding:6px 10px;border-radius:var(--radius);font-family:inherit;font-size:11.5px;cursor:pointer;}
+  .round-bar{display:flex;align-items:center;justify-content:space-between;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px 24px;margin-bottom:20px;flex-wrap:wrap;gap:16px;}
+  .round-status .roundlabel{font-size:13px;color:var(--text-dim);}
+  .round-status .roundnum{font-size:20px;font-weight:600;}
+  .statuspill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;margin-left:8px;}
+  .statuspill.active{background:rgba(52,211,153,0.15);color:var(--green);}
+  .statuspill.closed{background:rgba(139,150,172,0.15);color:var(--text-dim);}
+  .statuspill.idle{background:rgba(139,150,172,0.1);color:var(--text-dim);}
+  .countdown{font-size:36px;font-weight:600;letter-spacing:0.02em;font-family:'IBM Plex Mono',monospace;}
+  .countdown.warn{color:var(--amber);}
+  .countdown.danger{color:var(--red);animation:pulse 1s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.55;}}
+  .round-actions{display:flex;gap:10px;flex-wrap:wrap;}
+  .vendor-panels{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;}
+  .vendor-panel{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:var(--radius);padding:20px;}
+  .vendor-panel.a{--accent:var(--vendorA);}
+  .vendor-panel.b{--accent:var(--vendorB);}
+  .vendor-name{font-size:16px;font-weight:600;margin-bottom:2px;}
+  .vendor-sub{font-size:12px;color:var(--text-dim);margin-bottom:12px;}
+  .link-row{display:flex;gap:8px;align-items:center;background:var(--panel-2);border:1px solid var(--line);border-radius:var(--radius);padding:8px 10px;margin-bottom:12px;}
+  .link-row .lbl{font-size:11px;color:var(--text-dim);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .price-history{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 4px;}
+  .price-chip{font-family:'IBM Plex Mono',monospace;font-size:11.5px;background:var(--panel-2);border:1px solid var(--line);padding:4px 8px;border-radius:20px;color:var(--text-dim);}
+  .live-price{font-size:20px;font-weight:600;font-family:'IBM Plex Mono',monospace;margin-top:8px;}
+  .waiting-note{color:var(--text-dim);font-size:12.5px;margin-top:8px;}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th{text-align:left;color:var(--text-dim);font-weight:500;font-size:11.5px;padding:8px 10px;border-bottom:1px solid var(--line);}
+  td{padding:11px 10px;border-bottom:1px solid var(--line);}
+  td.num{font-family:'IBM Plex Mono',monospace;}
+  tr.leader td{color:var(--green);}
+  .rankbadge{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--panel-2);border:1px solid var(--line);font-size:11px;font-family:'IBM Plex Mono',monospace;}
+  tr.leader .rankbadge{background:var(--green);color:#06251B;border-color:var(--green);}
+  tr.ineligible td{color:var(--text-dim);}
+  .hps-pill{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;white-space:nowrap;}
+  .hps-pill.ok{background:rgba(52,211,153,0.15);color:var(--green);}
+  .hps-pill.over{background:rgba(248,113,113,0.15);color:var(--red);}
+  .hps-pill.na{background:rgba(139,150,172,0.12);color:var(--text-dim);}
+  .section-title{font-size:14px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;}
+  .section-title span.dim{font-size:12px;color:var(--text-dim);font-weight:400;}
+  .log-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:14px;}
+  .disclaimer{font-size:12px;color:var(--text-dim);border-top:1px solid var(--line);padding-top:14px;margin-top:16px;line-height:1.6;}
+  .hidden{display:none !important;}
+  .result-hero{text-align:center;padding:36px 20px;}
+  .result-hero .badge{display:inline-block;background:rgba(52,211,153,0.12);color:var(--green);padding:5px 14px;border-radius:20px;font-size:12px;margin-bottom:16px;}
+  .result-hero .winner-name{font-size:30px;font-weight:700;margin-bottom:6px;}
+  .result-hero .winner-score{color:var(--text-dim);font-size:14px;}
+  .sessioncode{font-family:'IBM Plex Mono',monospace;font-size:13px;background:var(--panel-2);border:1px solid var(--line);padding:4px 10px;border-radius:20px;}
+  .err-banner{color:var(--red);font-size:13px;margin-top:10px;}
+  @media (max-width:760px){ .grid2, .vendor-panels{grid-template-columns:1fr;} .round-bar{flex-direction:column;align-items:flex-start;} }
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="masthead">
+    <div>
+      <h1>Panel Panitia — Ruang Bidding Tender Terbatas</h1>
+      <p>Penyampaian Materi Trusted Wealth Advisor untuk Emerald RM. Panitia mengontrol ronde; Vendor A dan Vendor B mengirim penawaran dari perangkat masing-masing melalui link Peserta.</p>
+    </div>
+    <button class="reset-btn no-print" id="btnNewSession">Mulai Sesi Baru</button>
+  </header>
+
+  <section id="setupPhase">
+    <div class="card">
+      <div class="section-title">Data Awal Sesi Pengadaan</div>
+      <div class="field">
+        <label>Alamat Server (Base URL)</label>
+        <input type="text" id="baseUrl" placeholder="https://server-anda.example.com">
+        <div class="fieldnote">Alamat tempat server.js ini di-deploy. Kosongkan untuk memakai host saat ini secara otomatis.</div>
+      </div>
+      <div class="grid2">
+        <div>
+          <div class="field">
+            <label>Nama Vendor A</label>
+            <input type="text" id="vendorAName" placeholder="mis. PT Vendor Satu">
+          </div>
+          <div class="field">
+            <label>Skor Teknis Vendor A — sudah tertimbang 80% (skala 0–4)</label>
+            <input type="number" id="vendorATeknis" min="0" max="4" step="0.01" placeholder="mis. 3.36">
+          </div>
+        </div>
+        <div>
+          <div class="field">
+            <label>Nama Vendor B</label>
+            <input type="text" id="vendorBName" placeholder="mis. PT Vendor Dua">
+          </div>
+          <div class="field">
+            <label>Skor Teknis Vendor B — sudah tertimbang 80% (skala 0–4)</label>
+            <input type="number" id="vendorBTeknis" min="0" max="4" step="0.01" placeholder="mis. 3.12">
+          </div>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label>Durasi Tiap Ronde (menit)</label>
+          <input type="number" id="durasiMenit" min="1" step="1" value="15">
+        </div>
+        <div class="field">
+          <label>HPS / Pagu Harga (opsional)</label>
+          <input type="number" id="hpsInput" placeholder="mis. 600000000">
+          <div class="fieldnote">Jika diisi, harga akhir wajib ≤ HPS agar vendor berhak menang.</div>
+        </div>
+      </div>
+      <div class="checkrow"><input type="checkbox" id="hpsRevealed"><label for="hpsRevealed">Tampilkan nilai HPS ke Vendor</label></div>
+      <div class="checkrow"><input type="checkbox" id="teknisRevealed"><label for="teknisRevealed">Tampilkan skor teknis ke masing-masing Vendor</label></div>
+      <button class="btn-primary" id="btnStartSession">Mulai Sesi Bidding</button>
+      <div class="err-banner" id="setupErr"></div>
+    </div>
+  </section>
+
+  <section id="biddingPhase" class="hidden">
+    <div class="card" style="margin-bottom:20px;">
+      <div class="section-title">Kode Sesi &amp; Link Peserta <span class="sessioncode mono" id="sessionCodeLbl">—</span></div>
+      <div class="link-row"><span class="lbl mono" id="linkA"></span><button class="btn-copy" data-copy="linkA">Salin Link Vendor A</button></div>
+      <div class="link-row"><span class="lbl mono" id="linkB"></span><button class="btn-copy" data-copy="linkB">Salin Link Vendor B</button></div>
+      <div class="fieldnote">Bagikan link ini secara privat ke masing-masing vendor (mis. via email/WA). Jangan bagikan link Vendor A ke Vendor B atau sebaliknya.</div>
+    </div>
+
+    <div class="round-bar">
+      <div class="round-status">
+        <div><div class="roundlabel">Status Ronde</div><div class="roundnum" id="roundNumDisplay">Belum dimulai <span class="statuspill idle">idle</span></div></div>
+      </div>
+      <div class="countdown mono" id="countdownDisplay">--:--</div>
+      <div class="round-actions no-print">
+        <button class="btn-secondary" id="btnOpenRound">Buka Ronde Baru</button>
+        <button class="btn-secondary" id="btnCloseRound" disabled>Tutup Ronde Sekarang</button>
+      </div>
+    </div>
+
+    <div class="vendor-panels">
+      <div class="vendor-panel a">
+        <div class="vendor-name" id="panelAName">Vendor A</div>
+        <div class="vendor-sub" id="panelATeknis">Skor teknis —</div>
+        <div class="price-history" id="panelAHistory"></div>
+        <div id="panelALive"></div>
+      </div>
+      <div class="vendor-panel b">
+        <div class="vendor-name" id="panelBName">Vendor B</div>
+        <div class="vendor-sub" id="panelBTeknis">Skor teknis —</div>
+        <div class="price-history" id="panelBHistory"></div>
+        <div id="panelBLive"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Peringkat Live <span class="dim">Merit point (skala 1–5) = (skor teknis × 80%) + (skor harga × 20%)</span></div>
+      <table>
+        <thead><tr><th>#</th><th>Vendor</th><th>Skor Teknis (Tertimbang)</th><th>Harga Berlaku</th><th>Skor Harga</th><th>Total Merit Point</th><th>Status HPS</th></tr></thead>
+        <tbody id="leaderboardBody"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Log Ronde <span class="dim">Jejak audit untuk berita acara</span></div>
+      <table>
+        <thead><tr><th>Ronde</th><th>Dibuka</th><th>Ditutup</th><th id="thAName">Harga A</th><th id="thBName">Harga B</th><th>Unggul Sementara</th><th>Status</th></tr></thead>
+        <tbody id="roundLogBody"></tbody>
+      </table>
+      <div class="log-actions no-print">
+        <button class="btn-ghost" id="btnDownloadCsv">Unduh Log Ronde (CSV)</button>
+        <button class="btn-primary" id="btnFinish" disabled>Selesaikan Sesi &amp; Tampilkan Hasil</button>
+      </div>
+    </div>
+
+    <div class="disclaimer">
+      Perhitungan bersifat kalkulasi merit point otomatis. Vendor dengan total merit point tertinggi namun harga akhirnya di atas HPS akan ditandai gugur syarat harga. Hasil ini adalah rekomendasi teknis-finansial, bukan keputusan final pemenang tender.
+    </div>
+  </section>
+
+  <section id="resultPhase" class="hidden">
+    <div class="card result-hero">
+      <div class="badge">Hasil Akhir Perhitungan Merit Point</div>
+      <div class="winner-name" id="resultWinnerName">—</div>
+      <div class="winner-score" id="resultWinnerScore">—</div>
+    </div>
+    <div class="card">
+      <div class="section-title">Ringkasan Akhir</div>
+      <table>
+        <thead><tr><th>Vendor</th><th>Skor Teknis (Tertimbang)</th><th>Harga Final</th><th>Skor Harga</th><th>Total Merit Point</th><th>Status HPS</th></tr></thead>
+        <tbody id="resultSummaryBody"></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="section-title">Riwayat Unggul per Ronde</div>
+      <table>
+        <thead><tr><th>Ronde</th><th id="thResultAName">Harga A</th><th id="thResultBName">Harga B</th><th>Unggul Sementara</th></tr></thead>
+        <tbody id="resultRoundHistoryBody"></tbody>
+      </table>
+    </div>
+    <div class="disclaimer">Dokumen ini merupakan rekapitulasi hasil sesi bidding elektronik untuk keperluan berita acara. Keputusan akhir tetap berada pada kewenangan Panitia Pengadaan.</div>
+    <div class="log-actions no-print" style="justify-content:flex-start;margin-top:16px;">
+      <button class="btn-ghost" id="btnPrint">Cetak / Simpan sebagai PDF</button>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  const $ = (id)=>document.getElementById(id);
+  const fmtMoney = (n)=> n==null ? '—' : 'Rp ' + Number(n).toLocaleString('id-ID');
+  const fmtNum = (n,d=1)=> n==null ? '—' : Number(n).toFixed(d);
+  const fmtTime = (ms)=> ms ? new Date(ms).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '—';
+
+  let base = '';
+  let sessionInfo = null; // {code, adminToken, tokenA, tokenB}
+  let pollTimer = null;
+  let lastView = null;
+
+  function apiBase(){ return base || window.location.origin; }
+
+  async function api(pathSuffix, opts){
+    const res = await fetch(apiBase()+pathSuffix, opts);
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(data.error || 'Terjadi kesalahan.');
+    return data;
+  }
+
+  // ---------- SETUP ----------
+  $('btnStartSession').addEventListener('click', async ()=>{
+    $('setupErr').textContent = '';
+    base = $('baseUrl').value.trim();
+    const payload = {
+      vendorAName: $('vendorAName').value.trim(),
+      vendorBName: $('vendorBName').value.trim(),
+      teknisA: $('vendorATeknis').value,
+      teknisB: $('vendorBTeknis').value,
+      durasiMenit: $('durasiMenit').value,
+      hps: $('hpsInput').value,
+      hpsRevealed: $('hpsRevealed').checked,
+      teknisRevealed: $('teknisRevealed').checked,
+    };
+    try{
+      const data = await api('/api/sessions', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+      sessionInfo = data;
+      $('sessionCodeLbl').textContent = data.code;
+      const linkA = apiBase()+'/vendor?code='+data.code+'&token='+data.tokenA;
+      const linkB = apiBase()+'/vendor?code='+data.code+'&token='+data.tokenB;
+      $('linkA').textContent = linkA; $('linkA').dataset.full = linkA;
+      $('linkB').textContent = linkB; $('linkB').dataset.full = linkB;
+      $('setupPhase').classList.add('hidden');
+      $('biddingPhase').classList.remove('hidden');
+      startPolling();
+    }catch(e){
+      $('setupErr').textContent = e.message;
+    }
+  });
+
+  document.addEventListener('click', (e)=>{
+    if(e.target.dataset && e.target.dataset.copy){
+      const el = $(e.target.dataset.copy);
+      navigator.clipboard.writeText(el.dataset.full || el.textContent);
+      const old = e.target.textContent;
+      e.target.textContent = 'Tersalin!';
+      setTimeout(()=>e.target.textContent = old, 1200);
+    }
+  });
+
+  // ---------- POLLING ----------
+  function startPolling(){
+    refresh();
+    pollTimer = setInterval(refresh, 1500);
+  }
+  async function refresh(){
+    if(!sessionInfo) return;
+    try{
+      const v = await api('/api/sessions/'+sessionInfo.code+'/admin?adminToken='+sessionInfo.adminToken, {method:'GET'});
+      lastView = v;
+      render(v);
+    }catch(e){ /* diamkan error transient polling */ }
+  }
+
+  // ---------- ROUND CONTROL ----------
+  $('btnOpenRound').addEventListener('click', async ()=>{
+    try{ await api('/api/sessions/'+sessionInfo.code+'/admin/round/open', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({adminToken:sessionInfo.adminToken})}); refresh(); }
+    catch(e){ alert(e.message); }
+  });
+  $('btnCloseRound').addEventListener('click', async ()=>{
+    try{ await api('/api/sessions/'+sessionInfo.code+'/admin/round/close', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({adminToken:sessionInfo.adminToken})}); refresh(); }
+    catch(e){ alert(e.message); }
+  });
+
+  // ---------- RENDER ----------
+  function render(v){
+    $('panelAName').textContent = v.vendorA.name;
+    $('panelBName').textContent = v.vendorB.name;
+    $('panelATeknis').textContent = 'Skor teknis tertimbang: ' + fmtNum(v.vendorA.teknis,2) + ' pt (dari maks. 4)';
+    $('panelBTeknis').textContent = 'Skor teknis tertimbang: ' + fmtNum(v.vendorB.teknis,2) + ' pt (dari maks. 4)';
+    $('thAName').textContent = 'Harga ' + v.vendorA.name;
+    $('thBName').textContent = 'Harga ' + v.vendorB.name;
+
+    // round bar
+    const r = v.currentRound;
+    if(!r){
+      $('roundNumDisplay').innerHTML = 'Belum dimulai <span class="statuspill idle">idle</span>';
+      $('btnCloseRound').disabled = true;
+      $('countdownDisplay').textContent = '--:--';
+      $('countdownDisplay').className = 'countdown mono';
+    } else {
+      const pill = r.status==='active' ? '<span class="statuspill active">berlangsung</span>' : '<span class="statuspill closed">ditutup</span>';
+      $('roundNumDisplay').innerHTML = 'Ronde ' + r.num + ' ' + pill;
+      $('btnCloseRound').disabled = r.status!=='active';
+      if(r.status==='active'){
+        const remainMs = Math.max(0, r.deadlineAt - Date.now());
+        const totalSec = Math.round(remainMs/1000);
+        const m = Math.floor(totalSec/60), s = totalSec%60;
+        $('countdownDisplay').textContent = String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+        $('countdownDisplay').className = 'countdown mono' + (totalSec<=60?' danger':totalSec<=180?' warn':'');
+      } else {
+        $('countdownDisplay').textContent = '--:--';
+        $('countdownDisplay').className = 'countdown mono';
+      }
+    }
+    $('btnOpenRound').disabled = !!(r && r.status==='active');
+
+    // vendor panel live price
+    const rounds = v.rounds;
+    const histA = rounds.filter(x=>x.status==='closed').map(x=>'<span class="price-chip">R'+x.num+': '+fmtMoney(x.priceA)+'</span>').join('');
+    const histB = rounds.filter(x=>x.status==='closed').map(x=>'<span class="price-chip">R'+x.num+': '+fmtMoney(x.priceB)+'</span>').join('');
+    $('panelAHistory').innerHTML = histA || '<span class="price-chip">Belum ada harga tercatat</span>';
+    $('panelBHistory').innerHTML = histB || '<span class="price-chip">Belum ada harga tercatat</span>';
+    const activeRound = rounds.find(x=>x.status==='active');
+    $('panelALive').innerHTML = activeRound ? (activeRound.priceA!=null ? '<div class="live-price">'+fmtMoney(activeRound.priceA)+'</div>' : '<div class="waiting-note">Menunggu penawaran dari Vendor A…</div>') : '<div class="waiting-note">Belum ada ronde aktif.</div>';
+    $('panelBLive').innerHTML = activeRound ? (activeRound.priceB!=null ? '<div class="live-price">'+fmtMoney(activeRound.priceB)+'</div>' : '<div class="waiting-note">Menunggu penawaran dari Vendor B…</div>') : '<div class="waiting-note">Belum ada ronde aktif.</div>';
+
+    // leaderboard
+    $('leaderboardBody').innerHTML = v.leaderboard.map((row,i)=>{
+      const isLeader = i===0 && row.hps.eligible && row.price!=null;
+      const rowClass = isLeader ? 'leader' : (!row.hps.eligible ? 'ineligible' : '');
+      const cls = row.hps.eligible ? (v.hps==null?'na':'ok') : 'over';
+      return '<tr class="'+rowClass+'"><td><span class="rankbadge">'+(i+1)+'</span></td><td>'+row.name+'</td><td class="num">'+fmtNum(row.teknis,2)+'</td><td class="num">'+fmtMoney(row.price)+'</td><td class="num">'+fmtNum(row.score,2)+'</td><td class="num">'+fmtNum(row.total,2)+'</td><td><span class="hps-pill '+cls+'">'+row.hps.label+'</span></td></tr>';
+    }).join('');
+
+    // round log
+    $('roundLogBody').innerHTML = rounds.map(rr=>{
+      const statusLabel = rr.status==='active' ? 'Berlangsung' : 'Ditutup';
+      const leaderCell = rr.status==='closed' ? rr.leaderLabel : '—';
+      return '<tr><td>Ronde '+rr.num+'</td><td>'+fmtTime(rr.openedAt)+'</td><td>'+fmtTime(rr.closedAt)+'</td><td class="num">'+fmtMoney(rr.priceA)+'</td><td class="num">'+fmtMoney(rr.priceB)+'</td><td>'+leaderCell+'</td><td>'+statusLabel+'</td></tr>';
+    }).join('') || '<tr><td colspan="7" style="color:var(--text-dim);">Belum ada ronde.</td></tr>';
+    $('btnFinish').disabled = !rounds.some(rr=>rr.status==='closed');
+  }
+
+  // ---------- CSV EXPORT ----------
+  $('btnDownloadCsv').addEventListener('click', ()=>{
+    if(!lastView) return;
+    const v = lastView;
+    let csv = 'Ronde,Dibuka,Ditutup,Skor Teknis '+v.vendorA.name+',Skor Teknis '+v.vendorB.name+',Harga '+v.vendorA.name+',Harga '+v.vendorB.name+',Skor Harga '+v.vendorA.name+',Skor Harga '+v.vendorB.name+',Unggul Sementara,Status\n';
+    v.rounds.forEach(r=>{
+      const leader = r.status==='closed' ? r.leaderLabel : '';
+      csv += [r.num, fmtTime(r.openedAt), fmtTime(r.closedAt), fmtNum(v.vendorA.teknis,2), fmtNum(v.vendorB.teknis,2), r.priceA||'', r.priceB||'', r.scoreA!=null?r.scoreA.toFixed(2):'', r.scoreB!=null?r.scoreB.toFixed(2):'', '"'+leader+'"', r.status].join(',') + '\n';
+    });
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'log-ronde-bidding.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  // ---------- FINISH ----------
+  $('btnFinish').addEventListener('click', async ()=>{
+    try{
+      const data = await api('/api/sessions/'+sessionInfo.code+'/admin/finish', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({adminToken:sessionInfo.adminToken})});
+      const res = data.result;
+      $('resultWinnerName').textContent = res.headline;
+      $('resultWinnerScore').textContent = res.subline;
+      $('resultSummaryBody').innerHTML = res.summary.map(r=>(
+        '<tr><td>'+r.name+'</td><td class="num">'+fmtNum(r.teknis,2)+'</td><td class="num">'+fmtMoney(r.price)+'</td><td class="num">'+fmtNum(r.score,2)+'</td><td class="num">'+fmtNum(r.total,2)+'</td><td><span class="hps-pill '+(r.hps.eligible?'ok':'over')+'">'+r.hps.label+'</span></td></tr>'
+      )).join('');
+      $('thResultAName').textContent = 'Harga ' + lastView.vendorA.name;
+      $('thResultBName').textContent = 'Harga ' + lastView.vendorB.name;
+      $('resultRoundHistoryBody').innerHTML = res.roundHistory.length ? res.roundHistory.map(r=>(
+        '<tr><td>Ronde '+r.num+'</td><td class="num">'+fmtMoney(r.priceA)+'</td><td class="num">'+fmtMoney(r.priceB)+'</td><td>'+r.leaderLabel+'</td></tr>'
+      )).join('') : '<tr><td colspan="4" style="color:var(--text-dim);">Tidak ada ronde tercatat.</td></tr>';
+      clearInterval(pollTimer);
+      $('biddingPhase').classList.add('hidden');
+      $('resultPhase').classList.remove('hidden');
+    }catch(e){ alert(e.message); }
+  });
+
+  $('btnPrint').addEventListener('click', ()=>window.print());
+
+  $('btnNewSession').addEventListener('click', ()=>{
+    if(!confirm('Mulai sesi baru? Sesi saat ini akan tetap berjalan di server namun panel ini akan direset (unduh log CSV dulu jika perlu).')) return;
+    if(pollTimer) clearInterval(pollTimer);
+    sessionInfo = null; lastView = null;
+    ['vendorAName','vendorATeknis','vendorBName','vendorBTeknis','hpsInput'].forEach(id=>$(id).value='');
+    $('durasiMenit').value = 15;
+    $('hpsRevealed').checked = false;
+    $('teknisRevealed').checked = false;
+    $('setupPhase').classList.remove('hidden');
+    $('biddingPhase').classList.add('hidden');
+    $('resultPhase').classList.add('hidden');
+  });
+
+  setInterval(()=>{ if(lastView) render(lastView); }, 1000); // smooth countdown between polls
+})();
+</script>
+</body>
+</html>

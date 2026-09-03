@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel Vendor — Ruang Bidding Tender Terbatas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B1220; --panel:#121B2E; --panel-2:#0E1626; --line:#24304A;
+    --text:#E8ECF3; --text-dim:#8B96AC; --amber:#F5A623; --green:#34D399; --red:#F87171; --radius:3px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  #app{max-width:640px;margin:0 auto;padding:28px 20px 80px;}
+  header.masthead{border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:24px;}
+  header.masthead h1{font-size:20px;font-weight:600;margin:0 0 4px;}
+  header.masthead p{margin:0;color:var(--text-dim);font-size:13px;line-height:1.5;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:22px;margin-bottom:20px;}
+  label{display:block;font-size:12.5px;color:var(--text-dim);margin-bottom:6px;}
+  input{width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);padding:10px 12px;border-radius:var(--radius);font-family:'IBM Plex Mono',monospace;font-size:14px;}
+  input:focus{outline:none;border-color:var(--amber);}
+  .field{margin-bottom:16px;}
+  .fieldnote{font-size:11.5px;color:var(--text-dim);margin-top:5px;}
+  .btn-primary{background:var(--amber);color:#1A1204;border:none;padding:12px 22px;border-radius:var(--radius);font-family:inherit;font-weight:600;font-size:14px;cursor:pointer;width:100%;}
+  .btn-primary:hover{filter:brightness(1.08);}
+  .btn-primary:disabled{background:var(--line);color:var(--text-dim);cursor:not-allowed;}
+  .vendor-name{font-size:20px;font-weight:700;margin-bottom:2px;}
+  .vendor-sub{font-size:12.5px;color:var(--text-dim);margin-bottom:4px;}
+  .statuspill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;margin-left:8px;}
+  .statuspill.active{background:rgba(52,211,153,0.15);color:var(--green);}
+  .statuspill.closed{background:rgba(139,150,172,0.15);color:var(--text-dim);}
+  .statuspill.idle{background:rgba(139,150,172,0.1);color:var(--text-dim);}
+  .countdown{font-size:44px;font-weight:600;letter-spacing:0.02em;font-family:'IBM Plex Mono',monospace;text-align:center;margin:10px 0;}
+  .countdown.warn{color:var(--amber);}
+  .countdown.danger{color:var(--red);animation:pulse 1s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.55;}}
+  .submit-row{display:flex;gap:8px;}
+  .submit-row input{flex:1;}
+  .err-msg{color:var(--red);font-size:12.5px;margin-top:10px;}
+  .ok-msg{color:var(--green);font-size:12.5px;margin-top:10px;}
+  .warn-msg{color:var(--amber);font-size:12.5px;margin-top:10px;}
+  .locked-note{color:var(--text-dim);font-size:12.5px;padding:14px 0;text-align:center;}
+  .price-history{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 4px;}
+  .price-chip{font-family:'IBM Plex Mono',monospace;font-size:11.5px;background:var(--panel-2);border:1px solid var(--line);padding:4px 8px;border-radius:20px;color:var(--text-dim);}
+  .status-box{border-top:1px solid var(--line);margin-top:16px;padding-top:16px;}
+  .status-box .row{display:flex;justify-content:space-between;font-size:13.5px;padding:6px 0;}
+  .status-box .row .lbl{color:var(--text-dim);}
+  .badge-lead{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;background:rgba(52,211,153,0.15);color:var(--green);}
+  .badge-behind{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;background:rgba(139,150,172,0.15);color:var(--text-dim);}
+  .disclaimer{font-size:11.5px;color:var(--text-dim);line-height:1.6;margin-top:8px;}
+  .hidden{display:none !important;}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px;}
+  th{text-align:left;color:var(--text-dim);font-weight:500;font-size:11px;padding:6px 8px;border-bottom:1px solid var(--line);}
+  td{padding:9px 8px;border-bottom:1px solid var(--line);}
+  td.num{font-family:'IBM Plex Mono',monospace;}
+  .result-hero{text-align:center;}
+  .result-hero .badge{display:inline-block;background:rgba(52,211,153,0.12);color:var(--green);padding:5px 14px;border-radius:20px;font-size:12px;margin-bottom:12px;}
+  .result-hero .winner-name{font-size:24px;font-weight:700;margin-bottom:6px;}
+  .result-hero .winner-score{color:var(--text-dim);font-size:13px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="masthead">
+    <h1>Panel Vendor — Ruang Bidding</h1>
+    <p>Portal ini hanya menampilkan data penawaran milik Anda. Panitia dan vendor lain tidak dapat melihat masukan Anda selain melalui panel ini.</p>
+  </header>
+
+  <section id="loginPhase">
+    <div class="card">
+      <div class="field">
+        <label>Alamat Server (Base URL)</label>
+        <input type="text" id="baseUrl" placeholder="https://server-anda.example.com">
+      </div>
+      <div class="field">
+        <label>Kode Sesi</label>
+        <input type="text" id="codeInput" placeholder="mis. K7M2QX" style="text-transform:uppercase;">
+      </div>
+      <div class="field">
+        <label>Token Akses</label>
+        <input type="text" id="tokenInput" placeholder="Token pribadi dari Panitia">
+        <div class="fieldnote">Kode Sesi dan Token diberikan secara privat oleh Panitia Pengadaan melalui link Anda masing-masing.</div>
+      </div>
+      <button class="btn-primary" id="btnLogin">Masuk</button>
+      <div class="err-msg" id="loginErr"></div>
+    </div>
+  </section>
+
+  <section id="mainPhase" class="hidden">
+    <div class="card">
+      <div class="vendor-name" id="vendorName">—</div>
+      <div class="vendor-sub" id="vendorTeknis"></div>
+      <div class="vendor-sub" id="vendorHps"></div>
+    </div>
+
+    <div class="card">
+      <div style="text-align:center;">
+        <span id="roundLabel">Belum ada ronde aktif</span>
+        <span class="statuspill idle" id="roundPill">idle</span>
+      </div>
+      <div class="countdown mono" id="countdown">--:--</div>
+
+      <div id="submitArea" class="hidden">
+        <div class="submit-row">
+          <input type="number" id="priceInput" placeholder="Masukkan harga penawaran (Rp)">
+          <button class="btn-primary" style="width:auto;" id="btnSubmit">Kirim</button>
+        </div>
+        <div id="submitMsg"></div>
+      </div>
+      <div id="lockedNote" class="locked-note"></div>
+
+      <div class="price-history" id="priceHistory"></div>
+    </div>
+
+    <div class="card" id="statusCard">
+      <div class="status-box">
+        <div class="row"><span class="lbl">Ronde terakhir ditutup</span><span id="stRound">—</span></div>
+        <div class="row"><span class="lbl">Harga tercatat</span><span id="stPrice">—</span></div>
+        <div class="row"><span class="lbl">Status harga</span><span id="stHps">—</span></div>
+        <div class="row"><span class="lbl">Posisi sementara</span><span id="stLead">—</span></div>
+      </div>
+      <div class="disclaimer">Posisi sementara dihitung berdasarkan total merit point (teknis + harga) dibanding vendor lain, tanpa menampilkan detail penawaran vendor lain kepada Anda.</div>
+    </div>
+
+    <div class="card hidden result-hero" id="resultCard">
+      <div class="badge">Hasil Akhir Tender</div>
+      <div class="winner-name" id="resWinner">—</div>
+      <div class="winner-score" id="resSub">—</div>
+      <table>
+        <thead><tr><th>Vendor</th><th>Skor Teknis</th><th>Harga Final</th><th>Skor Harga</th><th>Total</th><th>Status HPS</th></tr></thead>
+        <tbody id="resTable"></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  const $ = (id)=>document.getElementById(id);
+  const fmtMoney = (n)=> n==null ? '—' : 'Rp ' + Number(n).toLocaleString('id-ID');
+  const fmtNum = (n,d=1)=> n==null ? '—' : Number(n).toFixed(d);
+
+  let base = '';
+  let code = null, token = null;
+  let pollTimer = null;
+  let lastView = null;
+
+  function apiBase(){ return base || window.location.origin; }
+  async function api(pathSuffix, opts){
+    const res = await fetch(apiBase()+pathSuffix, opts);
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(data.error || 'Terjadi kesalahan.');
+    return data;
+  }
+
+  // Prefill dari query string jika ada (link yang dibagikan Panitia)
+  const params = new URLSearchParams(window.location.search);
+  if(params.get('code')) $('codeInput').value = params.get('code');
+  if(params.get('token')) $('tokenInput').value = params.get('token');
+  if(params.get('base')) $('baseUrl').value = params.get('base');
+
+  $('btnLogin').addEventListener('click', async ()=>{
+    $('loginErr').textContent='';
+    base = $('baseUrl').value.trim();
+    code = $('codeInput').value.trim().toUpperCase();
+    token = $('tokenInput').value.trim();
+    if(!code || !token){ $('loginErr').textContent = 'Kode Sesi dan Token wajib diisi.'; return; }
+    try{
+      await api('/api/sessions/'+code+'/vendor?token='+encodeURIComponent(token), {method:'GET'});
+      $('loginPhase').classList.add('hidden');
+      $('mainPhase').classList.remove('hidden');
+      startPolling();
+    }catch(e){
+      $('loginErr').textContent = e.message;
+    }
+  });
+
+  // Auto-login jika code & token sudah ada di URL
+  if(params.get('code') && params.get('token')){
+    $('btnLogin').click();
+  }
+
+  function startPolling(){
+    refresh();
+    pollTimer = setInterval(refresh, 1500);
+  }
+  async function refresh(){
+    try{
+      const v = await api('/api/sessions/'+code+'/vendor?token='+encodeURIComponent(token), {method:'GET'});
+      lastView = v;
+      render(v);
+    }catch(e){ /* diamkan error transient */ }
+  }
+
+  $('btnSubmit').addEventListener('click', async ()=>{
+    const val = $('priceInput').value;
+    try{
+      const r = await api('/api/sessions/'+code+'/vendor/bid', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({token, price: val})});
+      $('submitMsg').innerHTML = '<div class="'+(r.warning?'warn-msg':'ok-msg')+'">'+r.message+'</div>';
+      $('priceInput').value = '';
+      refresh();
+    }catch(e){
+      $('submitMsg').innerHTML = '<div class="err-msg">'+e.message+'</div>';
+    }
+  });
+
+  function render(v){
+    $('vendorName').textContent = v.vendorName;
+    $('vendorTeknis').textContent = v.teknisRevealed ? ('Skor teknis tertimbang: ' + fmtNum(v.teknis,2) + ' pt (dari maks. 4)') : 'Skor teknis dirahasiakan selama proses bidding.';
+    $('vendorHps').textContent = v.hpsRevealed ? ('HPS / Pagu Harga: ' + fmtMoney(v.hps)) : '';
+
+    const r = v.currentRound;
+    if(!r){
+      $('roundLabel').textContent = 'Belum ada ronde aktif';
+      $('roundPill').textContent = 'idle'; $('roundPill').className = 'statuspill idle';
+      $('countdown').textContent = '--:--'; $('countdown').className = 'countdown mono';
+      $('submitArea').classList.add('hidden');
+      $('lockedNote').textContent = 'Menunggu Panitia membuka ronde pertama.';
+    } else if(r.status === 'active'){
+      $('roundLabel').textContent = 'Ronde ' + r.num;
+      $('roundPill').textContent = 'berlangsung'; $('roundPill').className = 'statuspill active';
+      const remainMs = Math.max(0, r.deadlineAt - Date.now());
+      const totalSec = Math.round(remainMs/1000);
+      const m = Math.floor(totalSec/60), s = totalSec%60;
+      $('countdown').textContent = String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+      $('countdown').className = 'countdown mono' + (totalSec<=60?' danger':totalSec<=180?' warn':'');
+      $('submitArea').classList.remove('hidden');
+      $('lockedNote').textContent = '';
+      if(r.mySubmitted){
+        $('lockedNote').textContent = 'Penawaran ronde ini sudah tercatat. Anda dapat mengirim ulang untuk memperbarui (harga baru harus lebih rendah dari ronde sebelumnya).';
+      }
+    } else {
+      $('roundLabel').textContent = 'Ronde ' + r.num;
+      $('roundPill').textContent = 'ditutup'; $('roundPill').className = 'statuspill closed';
+      $('countdown').textContent = '--:--'; $('countdown').className = 'countdown mono';
+      $('submitArea').classList.add('hidden');
+      $('lockedNote').textContent = 'Ronde ditutup. Menunggu ronde berikutnya dibuka oleh Panitia.';
+    }
+
+    const hist = v.ownPriceHistory.map(h=>'<span class="price-chip">R'+h.num+': '+fmtMoney(h.price)+'</span>').join('');
+    $('priceHistory').innerHTML = hist || '<span class="price-chip">Belum ada harga tercatat</span>';
+
+    if(v.lastStatus){
+      $('stRound').textContent = 'Ronde ' + v.lastStatus.round;
+      $('stPrice').textContent = fmtMoney(v.lastStatus.price);
+      $('stHps').textContent = v.lastStatus.hpsLabel;
+      $('stLead').innerHTML = v.lastStatus.unggulSementara ? '<span class="badge-lead">Unggul Sementara</span>' : '<span class="badge-behind">Belum Unggul</span>';
+    }
+
+    if(v.phase === 'finished' && v.result){
+      $('resultCard').classList.remove('hidden');
+      $('resWinner').textContent = v.result.headline;
+      $('resSub').textContent = v.result.subline;
+      $('resTable').innerHTML = v.result.summary.map(row=>(
+        '<tr><td>'+row.name+'</td><td class="num">'+fmtNum(row.teknis,2)+'</td><td class="num">'+fmtMoney(row.price)+'</td><td class="num">'+fmtNum(row.score,2)+'</td><td class="num">'+fmtNum(row.total,2)+'</td><td>'+row.hps.label+'</td></tr>'
+      )).join('');
+      if(pollTimer) clearInterval(pollTimer);
+    }
+  }
+
+  setInterval(()=>{ if(lastView) render(lastView); }, 1000); // smooth countdown between polls
+})();
+</script>
+</body>
+</html>
