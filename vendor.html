@@ -117,6 +117,7 @@
 
     <div class="card" id="statusCard">
       <div class="status-box">
+        <div class="row"><span class="lbl">Posisi ronde aktif</span><span id="stLiveLead">—</span></div>
         <div class="row"><span class="lbl">Ronde terakhir ditutup</span><span id="stRound">—</span></div>
         <div class="row"><span class="lbl">Harga tercatat</span><span id="stPrice">—</span></div>
         <div class="row"><span class="lbl">Status harga</span><span id="stHps">—</span></div>
@@ -239,6 +240,13 @@
       $('submitArea').classList.add('hidden');
       $('lockedNote').textContent = 'Ronde ditutup. Menunggu ronde berikutnya dibuka oleh Panitia.';
     }
+
+      if(v.liveStatus){
+        const liveClass = v.liveStatus.unggulSementara ? 'badge-lead' : 'badge-behind';
+        $('stLiveLead').innerHTML = '<span class="'+liveClass+'">'+v.liveStatus.label+'</span>';
+      } else {
+        $('stLiveLead').textContent = 'Tidak ada ronde aktif';
+      }
 
     const hist = v.ownPriceHistory.map(h=>'<span class="price-chip">R'+h.num+': '+fmtMoney(h.price)+'</span>').join('');
     $('priceHistory').innerHTML = hist || '<span class="price-chip">Belum ada harga tercatat</span>';

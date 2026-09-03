@@ -166,6 +166,19 @@ function buildVendorView(session, vendor) {
     .map((r) => ({ num: r.num, price: r.bids[priceKey] }));
 
   let lastStatus = null;
+  let liveStatus = null;
+  if (round && round.status === 'active') {
+    const ev = evaluateRound(session, round);
+    const mine = ev.candidates.find((candidate) => candidate.id === vendor.id);
+    const eligible = ev.candidates.filter((candidate) => candidate.hps.eligible && candidate.price != null);
+    const submitted = mine.price != null;
+    liveStatus = {
+      round: round.num,
+      submitted,
+      unggulSementara: submitted && mine.hps.eligible && eligible[0]?.id === vendor.id,
+      label: !submitted ? 'Belum mengirim penawaran' : !mine.hps.eligible ? 'Harga belum memenuhi HPS' : eligible[0]?.id === vendor.id ? 'Unggul sementara' : 'Belum unggul',
+    };
+  }
   const lastClosed = [...session.rounds].reverse().find((r) => r.status === 'closed');
   if (lastClosed) {
     const ev = evaluateRound(session, lastClosed);
@@ -193,8 +206,9 @@ function buildVendorView(session, vendor) {
     hpsRevealed: session.hpsRevealed,
     durasiSec: session.durasiSec,
     phase: session.phase,
-    currentRound: round ? { num: round.num, status: round.status, deadlineAt: round.deadlineAt, mySubmitted: round[priceKey] != null } : null,
+    currentRound: round ? { num: round.num, status: round.status, deadlineAt: round.deadlineAt, mySubmitted: round.bids[priceKey] != null } : null,
     ownPriceHistory: ownHistory,
+    liveStatus,
     lastStatus,
     result: session.phase === 'finished' ? session.result : null,
     now: Date.now(),
