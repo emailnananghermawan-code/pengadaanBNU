@@ -108,28 +108,9 @@
         <input type="text" id="baseUrl" placeholder="https://server-anda.example.com">
         <div class="fieldnote">Alamat tempat server.js ini di-deploy. Kosongkan untuk memakai host saat ini secara otomatis.</div>
       </div>
-      <div class="grid2">
-        <div>
-          <div class="field">
-            <label>Nama Vendor A</label>
-            <input type="text" id="vendorAName" placeholder="mis. PT Vendor Satu">
-          </div>
-          <div class="field">
-            <label>Skor Teknis Vendor A — sudah tertimbang 80% (skala 0–4)</label>
-            <input type="number" id="vendorATeknis" min="0" max="4" step="0.01" placeholder="mis. 3.36">
-          </div>
-        </div>
-        <div>
-          <div class="field">
-            <label>Nama Vendor B</label>
-            <input type="text" id="vendorBName" placeholder="mis. PT Vendor Dua">
-          </div>
-          <div class="field">
-            <label>Skor Teknis Vendor B — sudah tertimbang 80% (skala 0–4)</label>
-            <input type="number" id="vendorBTeknis" min="0" max="4" step="0.01" placeholder="mis. 3.12">
-          </div>
-        </div>
-      </div>
+      <div class="section-title">Daftar Vendor</div>
+      <div id="vendorSetupList"></div>
+      <button class="btn-secondary" id="btnAddVendor" type="button">+ Tambah Vendor</button>
       <div class="grid2">
         <div class="field">
           <label>Durasi Tiap Ronde (menit)</label>
@@ -151,9 +132,8 @@
   <section id="biddingPhase" class="hidden">
     <div class="card" style="margin-bottom:20px;">
       <div class="section-title">Kode Sesi &amp; Link Peserta <span class="sessioncode mono" id="sessionCodeLbl">—</span></div>
-      <div class="link-row"><span class="lbl mono" id="linkA"></span><button class="btn-copy" data-copy="linkA">Salin Link Vendor A</button></div>
-      <div class="link-row"><span class="lbl mono" id="linkB"></span><button class="btn-copy" data-copy="linkB">Salin Link Vendor B</button></div>
-      <div class="fieldnote">Bagikan link ini secara privat ke masing-masing vendor (mis. via email/WA). Jangan bagikan link Vendor A ke Vendor B atau sebaliknya.</div>
+      <div id="vendorLinks"></div>
+      <div class="fieldnote">Bagikan setiap link secara privat kepada vendor yang sesuai.</div>
     </div>
 
     <div class="round-bar">
@@ -167,20 +147,7 @@
       </div>
     </div>
 
-    <div class="vendor-panels">
-      <div class="vendor-panel a">
-        <div class="vendor-name" id="panelAName">Vendor A</div>
-        <div class="vendor-sub" id="panelATeknis">Skor teknis —</div>
-        <div class="price-history" id="panelAHistory"></div>
-        <div id="panelALive"></div>
-      </div>
-      <div class="vendor-panel b">
-        <div class="vendor-name" id="panelBName">Vendor B</div>
-        <div class="vendor-sub" id="panelBTeknis">Skor teknis —</div>
-        <div class="price-history" id="panelBHistory"></div>
-        <div id="panelBLive"></div>
-      </div>
-    </div>
+    <div class="vendor-panels" id="vendorPanels"></div>
 
     <div class="card">
       <div class="section-title">Peringkat Live <span class="dim">Merit point (skala 1–5) = (skor teknis × 80%) + (skor harga × 20%)</span></div>
@@ -193,7 +160,7 @@
     <div class="card">
       <div class="section-title">Log Ronde <span class="dim">Jejak audit untuk berita acara</span></div>
       <table>
-        <thead><tr><th>Ronde</th><th>Dibuka</th><th>Ditutup</th><th id="thAName">Harga A</th><th id="thBName">Harga B</th><th>Unggul Sementara</th><th>Status</th></tr></thead>
+        <thead><tr id="roundLogHeader"><th>Ronde</th><th>Dibuka</th><th>Ditutup</th><th>Penawaran Vendor</th><th>Unggul Sementara</th><th>Status</th></tr></thead>
         <tbody id="roundLogBody"></tbody>
       </table>
       <div class="log-actions no-print">
@@ -223,7 +190,7 @@
     <div class="card">
       <div class="section-title">Riwayat Unggul per Ronde</div>
       <table>
-        <thead><tr><th>Ronde</th><th id="thResultAName">Harga A</th><th id="thResultBName">Harga B</th><th>Unggul Sementara</th></tr></thead>
+        <thead><tr><th>Ronde</th><th>Penawaran Vendor</th><th>Unggul Sementara</th></tr></thead>
         <tbody id="resultRoundHistoryBody"></tbody>
       </table>
     </div>
@@ -255,15 +222,29 @@
     return data;
   }
 
+  function addVendorRow(name='', teknis=''){
+    const row = document.createElement('div');
+    row.className = 'grid2 vendor-input-row';
+    row.innerHTML = '<div class="field"><label>Nama Vendor</label><input class="vendor-name-input" type="text" placeholder="mis. PT Vendor"></div><div class="field"><label>Skor Teknis (0–4)</label><input class="vendor-teknis-input" type="number" min="0" max="4" step="0.01" placeholder="mis. 3.36"><button class="btn-ghost remove-vendor" type="button">Hapus Vendor</button></div>';
+    row.querySelector('.vendor-name-input').value = name;
+    row.querySelector('.vendor-teknis-input').value = teknis;
+    $('vendorSetupList').appendChild(row);
+    row.querySelector('.remove-vendor').addEventListener('click', ()=>{
+      if(document.querySelectorAll('.vendor-input-row').length > 2) row.remove();
+    });
+  }
+  addVendorRow(); addVendorRow();
+  $('btnAddVendor').addEventListener('click', ()=>addVendorRow());
+
   // ---------- SETUP ----------
   $('btnStartSession').addEventListener('click', async ()=>{
     $('setupErr').textContent = '';
     base = $('baseUrl').value.trim();
     const payload = {
-      vendorAName: $('vendorAName').value.trim(),
-      vendorBName: $('vendorBName').value.trim(),
-      teknisA: $('vendorATeknis').value,
-      teknisB: $('vendorBTeknis').value,
+      vendors: [...document.querySelectorAll('.vendor-input-row')].map((row)=>({
+        name: row.querySelector('.vendor-name-input').value.trim(),
+        teknis: row.querySelector('.vendor-teknis-input').value,
+      })),
       durasiMenit: $('durasiMenit').value,
       hps: $('hpsInput').value,
       hpsRevealed: $('hpsRevealed').checked,
@@ -273,10 +254,11 @@
       const data = await api('/api/sessions', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
       sessionInfo = data;
       $('sessionCodeLbl').textContent = data.code;
-      const linkA = apiBase()+'/vendor?code='+data.code+'&token='+data.tokenA;
-      const linkB = apiBase()+'/vendor?code='+data.code+'&token='+data.tokenB;
-      $('linkA').textContent = linkA; $('linkA').dataset.full = linkA;
-      $('linkB').textContent = linkB; $('linkB').dataset.full = linkB;
+      $('vendorLinks').innerHTML = data.vendors.map((vendor)=>{
+        const link = apiBase()+'/vendor?code='+data.code+'&token='+vendor.token;
+        const id = 'link-'+vendor.id;
+        return '<div class="link-row"><span class="lbl mono" id="'+id+'">'+link+'</span><button class="btn-copy" data-copy="'+id+'">Salin Link '+vendor.name+'</button></div>';
+      }).join('');
       $('setupPhase').classList.add('hidden');
       $('biddingPhase').classList.remove('hidden');
       startPolling();
@@ -321,12 +303,12 @@
 
   // ---------- RENDER ----------
   function render(v){
-    $('panelAName').textContent = v.vendorA.name;
-    $('panelBName').textContent = v.vendorB.name;
-    $('panelATeknis').textContent = 'Skor teknis tertimbang: ' + fmtNum(v.vendorA.teknis,2) + ' pt (dari maks. 4)';
-    $('panelBTeknis').textContent = 'Skor teknis tertimbang: ' + fmtNum(v.vendorB.teknis,2) + ' pt (dari maks. 4)';
-    $('thAName').textContent = 'Harga ' + v.vendorA.name;
-    $('thBName').textContent = 'Harga ' + v.vendorB.name;
+    $('vendorPanels').innerHTML = v.vendors.map((vendor, index)=>{
+      const history = v.rounds.filter((round)=>round.status==='closed').map((round)=>'<span class="price-chip">R'+round.num+': '+fmtMoney(round.bids[vendor.id])+'</span>').join('');
+      const activeRound = v.rounds.find((round)=>round.status==='active');
+      const live = activeRound ? (activeRound.bids[vendor.id]!=null ? '<div class="live-price">'+fmtMoney(activeRound.bids[vendor.id])+'</div>' : '<div class="waiting-note">Menunggu penawaran...</div>') : '<div class="waiting-note">Belum ada ronde aktif.</div>';
+      return '<div class="vendor-panel '+(index % 2 ? 'b' : 'a')+'"><div class="vendor-name">'+vendor.name+'</div><div class="vendor-sub">Skor teknis tertimbang: '+fmtNum(vendor.teknis,2)+' pt (dari maks. 4)</div><div class="price-history">'+(history || '<span class="price-chip">Belum ada harga tercatat</span>')+'</div>'+live+'</div>';
+    }).join('');
 
     // round bar
     const r = v.currentRound;
@@ -354,14 +336,6 @@
 
     // vendor panel live price
     const rounds = v.rounds;
-    const histA = rounds.filter(x=>x.status==='closed').map(x=>'<span class="price-chip">R'+x.num+': '+fmtMoney(x.priceA)+'</span>').join('');
-    const histB = rounds.filter(x=>x.status==='closed').map(x=>'<span class="price-chip">R'+x.num+': '+fmtMoney(x.priceB)+'</span>').join('');
-    $('panelAHistory').innerHTML = histA || '<span class="price-chip">Belum ada harga tercatat</span>';
-    $('panelBHistory').innerHTML = histB || '<span class="price-chip">Belum ada harga tercatat</span>';
-    const activeRound = rounds.find(x=>x.status==='active');
-    $('panelALive').innerHTML = activeRound ? (activeRound.priceA!=null ? '<div class="live-price">'+fmtMoney(activeRound.priceA)+'</div>' : '<div class="waiting-note">Menunggu penawaran dari Vendor A…</div>') : '<div class="waiting-note">Belum ada ronde aktif.</div>';
-    $('panelBLive').innerHTML = activeRound ? (activeRound.priceB!=null ? '<div class="live-price">'+fmtMoney(activeRound.priceB)+'</div>' : '<div class="waiting-note">Menunggu penawaran dari Vendor B…</div>') : '<div class="waiting-note">Belum ada ronde aktif.</div>';
-
     // leaderboard
     $('leaderboardBody').innerHTML = v.leaderboard.map((row,i)=>{
       const isLeader = i===0 && row.hps.eligible && row.price!=null;
@@ -374,8 +348,9 @@
     $('roundLogBody').innerHTML = rounds.map(rr=>{
       const statusLabel = rr.status==='active' ? 'Berlangsung' : 'Ditutup';
       const leaderCell = rr.status==='closed' ? rr.leaderLabel : '—';
-      return '<tr><td>Ronde '+rr.num+'</td><td>'+fmtTime(rr.openedAt)+'</td><td>'+fmtTime(rr.closedAt)+'</td><td class="num">'+fmtMoney(rr.priceA)+'</td><td class="num">'+fmtMoney(rr.priceB)+'</td><td>'+leaderCell+'</td><td>'+statusLabel+'</td></tr>';
-    }).join('') || '<tr><td colspan="7" style="color:var(--text-dim);">Belum ada ronde.</td></tr>';
+      const bids = v.vendors.map((vendor)=>vendor.name+': '+fmtMoney(rr.bids[vendor.id])).join(' | ');
+      return '<tr><td>Ronde '+rr.num+'</td><td>'+fmtTime(rr.openedAt)+'</td><td>'+fmtTime(rr.closedAt)+'</td><td>'+bids+'</td><td>'+leaderCell+'</td><td>'+statusLabel+'</td></tr>';
+    }).join('') || '<tr><td colspan="6" style="color:var(--text-dim);">Belum ada ronde.</td></tr>';
     $('btnFinish').disabled = !rounds.some(rr=>rr.status==='closed');
   }
 
@@ -383,10 +358,10 @@
   $('btnDownloadCsv').addEventListener('click', ()=>{
     if(!lastView) return;
     const v = lastView;
-    let csv = 'Ronde,Dibuka,Ditutup,Skor Teknis '+v.vendorA.name+',Skor Teknis '+v.vendorB.name+',Harga '+v.vendorA.name+',Harga '+v.vendorB.name+',Skor Harga '+v.vendorA.name+',Skor Harga '+v.vendorB.name+',Unggul Sementara,Status\n';
+    let csv = 'Ronde,Dibuka,Ditutup,' + v.vendors.map((vendor)=>'Harga '+vendor.name).join(',') + ',Unggul Sementara,Status\n';
     v.rounds.forEach(r=>{
       const leader = r.status==='closed' ? r.leaderLabel : '';
-      csv += [r.num, fmtTime(r.openedAt), fmtTime(r.closedAt), fmtNum(v.vendorA.teknis,2), fmtNum(v.vendorB.teknis,2), r.priceA||'', r.priceB||'', r.scoreA!=null?r.scoreA.toFixed(2):'', r.scoreB!=null?r.scoreB.toFixed(2):'', '"'+leader+'"', r.status].join(',') + '\n';
+      csv += [r.num, fmtTime(r.openedAt), fmtTime(r.closedAt), ...v.vendors.map((vendor)=>r.bids[vendor.id] || ''), '"'+leader+'"', r.status].join(',') + '\n';
     });
     const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
     const url = URL.createObjectURL(blob);
@@ -406,10 +381,8 @@
       $('resultSummaryBody').innerHTML = res.summary.map(r=>(
         '<tr><td>'+r.name+'</td><td class="num">'+fmtNum(r.teknis,2)+'</td><td class="num">'+fmtMoney(r.price)+'</td><td class="num">'+fmtNum(r.score,2)+'</td><td class="num">'+fmtNum(r.total,2)+'</td><td><span class="hps-pill '+(r.hps.eligible?'ok':'over')+'">'+r.hps.label+'</span></td></tr>'
       )).join('');
-      $('thResultAName').textContent = 'Harga ' + lastView.vendorA.name;
-      $('thResultBName').textContent = 'Harga ' + lastView.vendorB.name;
       $('resultRoundHistoryBody').innerHTML = res.roundHistory.length ? res.roundHistory.map(r=>(
-        '<tr><td>Ronde '+r.num+'</td><td class="num">'+fmtMoney(r.priceA)+'</td><td class="num">'+fmtMoney(r.priceB)+'</td><td>'+r.leaderLabel+'</td></tr>'
+        '<tr><td>Ronde '+r.num+'</td><td>'+lastView.vendors.map((vendor)=>vendor.name+': '+fmtMoney(r.bids[vendor.id])).join(' | ')+'</td><td>'+r.leaderLabel+'</td></tr>'
       )).join('') : '<tr><td colspan="4" style="color:var(--text-dim);">Tidak ada ronde tercatat.</td></tr>';
       clearInterval(pollTimer);
       $('biddingPhase').classList.add('hidden');
@@ -423,7 +396,9 @@
     if(!confirm('Mulai sesi baru? Sesi saat ini akan tetap berjalan di server namun panel ini akan direset (unduh log CSV dulu jika perlu).')) return;
     if(pollTimer) clearInterval(pollTimer);
     sessionInfo = null; lastView = null;
-    ['vendorAName','vendorATeknis','vendorBName','vendorBTeknis','hpsInput'].forEach(id=>$(id).value='');
+    $('vendorSetupList').innerHTML = '';
+    addVendorRow(); addVendorRow();
+    $('hpsInput').value = '';
     $('durasiMenit').value = 15;
     $('hpsRevealed').checked = false;
     $('teknisRevealed').checked = false;
