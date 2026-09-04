@@ -9,22 +9,6 @@
 <style>
   :root{
     --bg:#0B1220; --panel:#121B2E; --panel-2:#0E1626; --line:#24304A;
-    --text:#E8ECF3; --text-dim:#8B96AC; --amber:#F5A623; --green:#34D399; --red:#F87171; --radius:3px;
-  }
-  *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;}
-  .mono{font-family:'IBM Plex Mono',monospace;}
-  #app{max-width:640px;margin:0 auto;padding:28px 20px 80px;}
-  header.masthead{border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:24px;}
-  header.masthead h1{font-size:20px;font-weight:600;margin:0 0 4px;}
-  header.masthead p{margin:0;color:var(--text-dim);font-size:13px;line-height:1.5;}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:22px;margin-bottom:20px;}
-  label{display:block;font-size:12.5px;color:var(--text-dim);margin-bottom:6px;}
-  input{width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);padding:10px 12px;border-radius:var(--radius);font-family:'IBM Plex Mono',monospace;font-size:14px;}
-  input:focus{outline:none;border-color:var(--amber);}
-  .field{margin-bottom:16px;}
-  .fieldnote{font-size:11.5px;color:var(--text-dim);margin-top:5px;}
-  .btn-primary{background:var(--amber);color:#1A1204;border:none;padding:12px 22px;border-radius:var(--radius);font-family:inherit;font-weight:600;font-size:14px;cursor:pointer;width:100%;}
   .btn-primary:hover{filter:brightness(1.08);}
   .btn-primary:disabled{background:var(--line);color:var(--text-dim);cursor:not-allowed;}
   .vendor-name{font-size:20px;font-weight:700;margin-bottom:2px;}
@@ -42,6 +26,7 @@
   .initial-price{font-size:12.5px;color:var(--amber);margin:8px 0 4px;}
   .err-msg{color:var(--red);font-size:12.5px;margin-top:10px;}
   .ok-msg{color:var(--green);font-size:12.5px;margin-top:10px;}
+  .bid-hint{color:var(--red);font-size:12.5px;margin-top:8px;}
   .warn-msg{color:var(--amber);font-size:12.5px;margin-top:10px;}
   .locked-note{color:var(--text-dim);font-size:12.5px;padding:14px 0;text-align:center;}
   .price-history{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 4px;}
@@ -110,6 +95,7 @@
           <input type="text" id="priceInput" inputmode="decimal" placeholder="Rp 100.000.000">
           <button class="btn-primary" style="width:auto;" id="btnSubmit">Kirim</button>
         </div>
+        <div class="bid-hint hidden" id="bidHint"></div>
         <div id="submitMsg"></div>
       </div>
       <div id="lockedNote" class="locked-note"></div>
@@ -147,7 +133,10 @@
     const formatted = integer.replace(/\B(?=(\d{3})+(?!\d))/g,'.');
     return 'Rp ' + formatted + (parts.length > 1 ? ',' + parts[1].slice(0,2) : '');
   }
-  $('priceInput').addEventListener('input', ()=>{ $('priceInput').value = formatMoneyInput($('priceInput').value); });
+  $('priceInput').addEventListener('input', ()=>{
+    $('priceInput').value = formatMoneyInput($('priceInput').value);
+    updateBidHint();
+  });
   async function api(pathSuffix, opts){
     const res = await fetch(apiBase()+pathSuffix, opts);
     const data = await res.json().catch(()=>null);
@@ -201,13 +190,14 @@
     const currentPrice = lastView?.currentRound?.currentPrice;
     const previousPrice = currentPrice || lastView?.ownPriceHistory?.slice(-1)[0]?.price || lastView?.hargaAwal;
     if(!numericValue || !previousPrice || numericValue >= previousPrice){
-      $('submitMsg').innerHTML = '<div class="err-msg">Harga harus lebih rendah dari penawaran sebelumnya atau harga awal.</div>';
+      updateBidHint();
       return;
     }
     try{
       const r = await api('/api/sessions/'+code+'/vendor/bid', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({token, price: val})});
-      $('submitMsg').innerHTML = '<div class="'+(r.warning?'warn-msg':'ok-msg')+'">'+r.message+'</div>';
+      $('submitMsg').innerHTML = '<div class="ok-msg">Harga tercatat.</div>';
       $('priceInput').value = '';
+      $('bidHint').classList.add('hidden');
       refresh();
     }catch(e){
       $('submitMsg').innerHTML = '<div class="err-msg">'+e.message+'</div>';
@@ -240,6 +230,7 @@
       $('countdown').className = 'countdown mono' + (totalSec<=60?' danger':totalSec<=180?' warn':'');
       $('submitArea').classList.remove('hidden');
       $('priceInput').placeholder = 'Di bawah ' + fmtMoney(r.currentPrice || v.hargaAwal);
+      updateBidHint();
       $('lockedNote').textContent = '';
       if(r.mySubmitted){
         $('lockedNote').textContent = 'Penawaran ronde ini sudah tercatat.';
@@ -249,6 +240,7 @@
       $('roundPill').textContent = 'ditutup'; $('roundPill').className = 'statuspill closed';
       $('countdown').textContent = '--:--'; $('countdown').className = 'countdown mono';
       $('submitArea').classList.add('hidden');
+      $('bidHint').classList.add('hidden');
       $('lockedNote').textContent = 'Ronde ditutup. Menunggu ronde berikutnya dibuka oleh Panitia.';
     }
 
@@ -275,11 +267,7 @@
     return Number.isFinite(parsed) ? parsed : 0;
   }
 
-  setInterval(()=>{ if(lastView) render(lastView); }, 1000); // smooth countdown between polls
-})();
-</script>
-</body>
-</html>
+  function updateBidHint(){
     const referencePrice = lastView?.currentRound?.currentPrice || lastView?.ownPriceHistory?.slice(-1)[0]?.price || lastView?.hargaAwal;
     const value = parseMoneyInput($('priceInput').value);
     if(value && referencePrice && value >= referencePrice){

@@ -503,10 +503,7 @@ const server = http.createServer(async (req, res) => {
         leaderLabel: evaluation.leaderLabel,
       });
       logActivity(session, vendor.name, 'Mengirim penawaran', 'Ronde ' + r.num + ': Rp ' + Number(val).toLocaleString('id-ID'));
-      let warning = null;
-      if (session.hps != null && val > session.hps) warning = 'Peringatan: harga di atas HPS, tetap tersimpan.';
-      if (session.nilaiWajar != null && val < session.nilaiWajar) warning = 'Peringatan: harga di bawah nilai wajar, tidak memenuhi syarat skor.';
-      return sendJson(res, 200, { ok: true, message: warning || 'Harga diterima.', warning: !!warning });
+      return sendJson(res, 200, { ok: true, message: 'Harga tercatat.', warning: false });
     }
   }
 
