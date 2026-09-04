@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Panel Panitia — Ruang Bidding Tender Terbatas</title>
+<title>Pengadaan BNU</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -98,8 +98,8 @@
 <div id="app">
   <header class="masthead">
     <div>
-      <h1 id="tenderTitle">Panel Panitia — Ruang Bidding Tender Terbatas</h1>
-      <p id="tenderDescription" class="hidden"></p>
+      <h1 id="tenderTitle">Pengadaan BNU</h1>
+      <p id="tenderDescription">Panitia mengontrol ronde; setiap vendor mengirim penawaran dari perangkat masing-masing melalui link Peserta.</p>
     </div>
     <button class="reset-btn no-print" id="btnNewSession">Mulai Sesi Baru</button>
   </header>
@@ -109,16 +109,16 @@
       <div class="section-title">Data Awal Sesi Pengadaan</div>
       <div class="field">
         <label>Alamat Server (Base URL)</label>
-        <input type="text" id="baseUrl" placeholder="https://server-anda.example.com">
+        <input type="text" id="baseUrl" value="https://pengadaanbnu-2.onrender.com" placeholder="https://server-anda.example.com">
         <div class="fieldnote">Alamat tempat server.js ini di-deploy. Kosongkan untuk memakai host saat ini secara otomatis.</div>
       </div>
       <div class="field">
         <label>Judul Pengadaan</label>
-        <input type="text" id="tenderTitleInput" placeholder="mis. Pengadaan Jasa Konsultan">
+        <input type="text" id="tenderTitleInput" value="Pengadaan BNU" placeholder="mis. Pengadaan Jasa Konsultan">
       </div>
       <div class="field">
         <label>Deskripsi Pengadaan</label>
-        <textarea id="tenderDescriptionInput" rows="3" placeholder="Masukkan deskripsi pengadaan"></textarea>
+        <textarea id="tenderDescriptionInput" rows="3" placeholder="Masukkan deskripsi pengadaan">Panitia mengontrol ronde; setiap vendor mengirim penawaran dari perangkat masing-masing melalui link Peserta.</textarea>
       </div>
       <div class="section-title">Daftar Vendor</div>
       <div id="vendorSetupList"></div>
@@ -167,7 +167,7 @@
     <div class="vendor-panels" id="vendorPanels"></div>
 
     <div class="card">
-      <div class="section-title">Peringkat Live <span class="dim">Skor akhir (maks. 5) = skor teknis (maks. 4) + skor harga berbobot 20% (maks. 1)</span></div>
+      <div class="section-title">Peringkat Live <span class="dim">Skor akhir (maks. 5) = skor teknis (maks. 4) + skor harga (maks. 1)</span></div>
       <table>
         <thead><tr><th>#</th><th>Vendor</th><th>Skor Teknis (Maks. 4)</th><th>Harga Berlaku</th><th>Skor Harga (Maks. 1)</th><th>Total (Maks. 5)</th><th>Status Harga</th></tr></thead>
         <tbody id="leaderboardBody"></tbody>
@@ -493,8 +493,9 @@
     sessionInfo = null; lastView = null;
     $('vendorSetupList').innerHTML = '';
     addVendorRow(); addVendorRow();
-    $('tenderTitleInput').value = '';
-    $('tenderDescriptionInput').value = '';
+    $('tenderTitleInput').value = 'Pengadaan BNU';
+    $('tenderDescriptionInput').value = 'Panitia mengontrol ronde; setiap vendor mengirim penawaran dari perangkat masing-masing melalui link Peserta.';
+    $('baseUrl').value = 'https://pengadaanbnu-2.onrender.com';
     $('hpsInput').value = '';
     $('nilaiWajarInput').value = '';
     $('durasiMenit').value = 15;
@@ -503,9 +504,10 @@
     $('setupPhase').classList.remove('hidden');
     $('biddingPhase').classList.add('hidden');
     $('resultPhase').classList.add('hidden');
-    $('tenderDescription').textContent = '';
-    $('tenderDescription').classList.add('hidden');
-    document.title = 'Panel Panitia — Ruang Bidding Tender Terbatas';
+    $('tenderTitle').textContent = 'Pengadaan BNU';
+    $('tenderDescription').textContent = 'Panitia mengontrol ronde; setiap vendor mengirim penawaran dari perangkat masing-masing melalui link Peserta.';
+    $('tenderDescription').classList.remove('hidden');
+    document.title = 'Pengadaan BNU';
   });
 
   setInterval(()=>{ if(lastView) render(lastView); }, 1000); // smooth countdown between polls

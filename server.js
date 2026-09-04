@@ -348,8 +348,8 @@ const server = http.createServer(async (req, res) => {
     const session = {
       code,
       adminToken: genToken(),
-      title: String(title || '').trim() || 'Panel Panitia — Ruang Bidding Tender Terbatas',
-      description: String(description || '').trim() || 'Panitia mengontrol ronde dan vendor mengirim penawaran melalui link Peserta.',
+      title: String(title || '').trim() || 'Pengadaan BNU',
+      description: String(description || '').trim() || 'Panitia mengontrol ronde; setiap vendor mengirim penawaran dari perangkat masing-masing melalui link Peserta.',
       vendors,
       durasiSec: Math.round(durasi * 60),
       hps: parsedHps,
