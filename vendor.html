@@ -151,7 +151,7 @@
   let pollTimer = null;
   let lastView = null;
 
-  function apiBase(){ return base || window.location.origin; }
+  function apiBase(){ return (base || window.location.origin).replace(/\/+$/, ''); }
   function formatMoneyInput(value){
     const raw = String(value).replace(/^Rp\s*/i,'').replace(/\./g,'');
     const parts = raw.replace(/[^0-9,]/g,'').split(',');
