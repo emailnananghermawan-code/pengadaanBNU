@@ -113,19 +113,22 @@ function evaluateRound(session, round) {
   const sc = computeScores(round.bids, session);
   const candidates = session.vendors.map((vendor) => {
     const price = round.bids[vendor.id];
-    return { id: vendor.id, name: vendor.name, total: totalMerit(vendor.teknis, sc.scores[vendor.id], price != null), hps: priceStatus(price, session), price };
+    const firstBid = round.bidLog.find((event) => event.vendorId === vendor.id);
+    return { id: vendor.id, name: vendor.name, total: totalMerit(vendor.teknis, sc.scores[vendor.id], price != null), hps: priceStatus(price, session), price, firstBidAt: firstBid?.at || null };
   });
   const ranked = candidates.sort((a, b) => {
     if (a.hps.eligible !== b.hps.eligible) return a.hps.eligible ? -1 : 1;
-    return b.total - a.total;
+    if (b.total !== a.total) return b.total - a.total;
+    if (a.firstBidAt == null || b.firstBidAt == null) return (a.firstBidAt || Infinity) - (b.firstBidAt || Infinity);
+    return a.firstBidAt - b.firstBidAt;
   });
   const eligible = ranked.filter((c) => c.hps.eligible && c.price != null);
   let leaderLabel;
   if (eligible.length === 0) leaderLabel = 'Tidak ada yang memenuhi HPS';
-  else if (eligible.length === 1 || eligible[0].total !== eligible[1].total)
+  else if (eligible.length === 1 || eligible[0].total !== eligible[1].total || eligible[0].firstBidAt !== eligible[1].firstBidAt)
     leaderLabel = eligible[0].name + ' (' + eligible[0].total.toFixed(2) + ')';
-  else leaderLabel = 'Imbang';
-  return { leaderLabel, candidates };
+  else leaderLabel = eligible[0].name + ' (' + eligible[0].total.toFixed(2) + ')';
+  return { leaderLabel, candidates: ranked };
 }
 
 function closeRoundInternal(session, round) {
@@ -208,7 +211,7 @@ function buildVendorView(session, vendor) {
       round: round.num,
       submitted,
       unggulSementara: submitted && mine.hps.eligible && eligible[0]?.id === vendor.id,
-      label: !submitted ? 'Belum mengirim penawaran' : !mine.hps.eligible ? 'Harga belum memenuhi HPS' : eligible[0]?.id === vendor.id ? 'Unggul sementara' : 'Belum unggul',
+      label: submitted && mine.hps.eligible && eligible[0]?.id === vendor.id ? 'Unggul sementara' : 'Belum unggul',
     };
   }
   const lastClosed = [...session.rounds].reverse().find((r) => r.status === 'closed');
