@@ -222,6 +222,7 @@
     <div class="disclaimer">Dokumen ini merupakan rekapitulasi hasil sesi bidding elektronik untuk keperluan berita acara. Keputusan akhir tetap berada pada kewenangan Panitia Pengadaan.</div>
     <div class="log-actions no-print" style="justify-content:flex-start;margin-top:16px;">
       <button class="btn-ghost" id="btnPrint">Cetak / Simpan sebagai PDF</button>
+      <button class="btn-ghost" id="btnDownloadCsvResult">Unduh Log Lengkap (CSV)</button>
     </div>
   </section>
 </div>
@@ -446,6 +447,11 @@
     v.rounds.forEach((round)=> (round.bidLog || []).forEach((event)=>{
       csv += [round.num, fmtTime(event.at), event.vendorName, event.price, event.leaderLabel].map(csvCell).join(',')+'\n';
     }));
+    csv += '\nLOG AKTIVITAS PANITIA DAN VENDOR\n';
+    csv += ['Waktu','Pelaku','Aktivitas','Detail'].map(csvCell).join(',')+'\n';
+    (v.activityLog || []).forEach((event)=>{
+      csv += [fmtTime(event.at), event.actor, event.action, event.detail].map(csvCell).join(',')+'\n';
+    });
     csv += '\nHASIL AKHIR\n';
     csv += ['Peringkat','Vendor','Skor Teknis','Harga Final','Skor Harga (0-1)','Skor Akhir (0-5)','Status Harga'].map(csvCell).join(',')+'\n';
     v.leaderboard.forEach((row,index)=>{
@@ -458,6 +464,7 @@
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
   });
+  $('btnDownloadCsvResult').addEventListener('click', ()=>$('btnDownloadCsv').click());
 
   // ---------- FINISH ----------
   $('btnFinish').addEventListener('click', async ()=>{

@@ -84,6 +84,9 @@ function parseMoney(value) {
   const normalized = value.trim().replace(/^Rp\s*/i, '').replace(/\s/g, '').replace(/\./g, '').replace(',', '.');
   return normalized ? parseFloat(normalized) : NaN;
 }
+function logActivity(session, actor, action, detail) {
+  session.activityLog.push({ at: Date.now(), actor, action, detail });
+}
 
 function vendorForToken(session, token) {
   return session.vendors.find((vendor) => vendor.token === token) || null;
@@ -179,6 +182,7 @@ function buildAdminView(session) {
     leaderboard,
     rounds,
     result: session.result || null,
+    activityLog: session.activityLog,
     now: Date.now(),
   };
 }
@@ -354,9 +358,11 @@ const server = http.createServer(async (req, res) => {
       teknisRevealed: !!teknisRevealed,
       phase: 'running',
       rounds: [],
+      activityLog: [],
       result: null,
     };
     sessions.set(code, session);
+    logActivity(session, 'Panitia', 'Membuat sesi bidding', session.title);
     return sendJson(res, 200, {
       code,
       adminToken: session.adminToken,
@@ -399,8 +405,12 @@ const server = http.createServer(async (req, res) => {
         bidLog: [],
         timer: null,
       };
-      round.timer = setTimeout(() => closeRoundInternal(session, round), session.durasiSec * 1000);
+      round.timer = setTimeout(() => {
+        closeRoundInternal(session, round);
+        logActivity(session, 'Sistem', 'Menutup ronde otomatis', 'Ronde ' + round.num + ' selesai karena waktu habis');
+      }, session.durasiSec * 1000);
       session.rounds.push(round);
+      logActivity(session, 'Panitia', 'Membuka ronde', 'Ronde ' + round.num);
       return sendJson(res, 200, { ok: true, round: round.num });
     }
 
@@ -412,6 +422,7 @@ const server = http.createServer(async (req, res) => {
       const r = currentRound(session);
       if (!r || r.status !== 'active') return sendJson(res, 400, { error: 'Tidak ada ronde aktif.' });
       closeRoundInternal(session, r);
+      logActivity(session, 'Panitia', 'Menutup ronde', 'Ronde ' + r.num);
       return sendJson(res, 200, { ok: true });
     }
 
@@ -454,6 +465,7 @@ const server = http.createServer(async (req, res) => {
         })),
       };
       session.phase = 'finished';
+      logActivity(session, 'Panitia', 'Mengakhiri sesi bidding', 'Hasil akhir ditampilkan');
       return sendJson(res, 200, { ok: true, result: session.result });
     }
 
@@ -490,6 +502,7 @@ const server = http.createServer(async (req, res) => {
         price: val,
         leaderLabel: evaluation.leaderLabel,
       });
+      logActivity(session, vendor.name, 'Mengirim penawaran', 'Ronde ' + r.num + ': Rp ' + Number(val).toLocaleString('id-ID'));
       let warning = null;
       if (session.hps != null && val > session.hps) warning = 'Peringatan: harga di atas HPS, tetap tersimpan.';
       if (session.nilaiWajar != null && val < session.nilaiWajar) warning = 'Peringatan: harga di bawah nilai wajar, tidak memenuhi syarat skor.';

@@ -122,20 +122,8 @@
         <div class="row"><span class="lbl">Posisi ronde aktif</span><span id="stLiveLead">—</span></div>
         <div class="row"><span class="lbl">Ronde terakhir ditutup</span><span id="stRound">—</span></div>
         <div class="row"><span class="lbl">Harga tercatat</span><span id="stPrice">—</span></div>
-        <div class="row"><span class="lbl">Status harga</span><span id="stHps">—</span></div>
         <div class="row"><span class="lbl">Posisi sementara</span><span id="stLead">—</span></div>
       </div>
-      <div class="disclaimer">Posisi sementara dihitung berdasarkan total merit point (teknis + harga) dibanding vendor lain, tanpa menampilkan detail penawaran vendor lain kepada Anda.</div>
-    </div>
-
-    <div class="card hidden result-hero" id="resultCard">
-      <div class="badge">Hasil Akhir Tender</div>
-      <div class="winner-name" id="resWinner">—</div>
-      <div class="winner-score" id="resSub">—</div>
-      <table>
-        <thead><tr><th>Vendor</th><th>Skor Teknis</th><th>Harga Final</th><th>Skor Harga</th><th>Total</th><th>Status HPS</th></tr></thead>
-        <tbody id="resTable"></tbody>
-      </table>
     </div>
   </section>
 </div>
@@ -277,18 +265,7 @@
     if(v.lastStatus){
       $('stRound').textContent = 'Ronde ' + v.lastStatus.round;
       $('stPrice').textContent = fmtMoney(v.lastStatus.price);
-      $('stHps').textContent = v.lastStatus.hpsLabel;
       $('stLead').innerHTML = v.lastStatus.unggulSementara ? '<span class="badge-lead">Unggul Sementara</span>' : '<span class="badge-behind">Belum Unggul</span>';
-    }
-
-    if(v.phase === 'finished' && v.result){
-      $('resultCard').classList.remove('hidden');
-      $('resWinner').textContent = v.result.headline;
-      $('resSub').textContent = v.result.subline;
-      $('resTable').innerHTML = v.result.summary.map(row=>(
-        '<tr><td>'+row.name+'</td><td class="num">'+fmtNum(row.teknis,2)+'</td><td class="num">'+fmtMoney(row.price)+'</td><td class="num">'+fmtNum(row.score,2)+'</td><td class="num">'+fmtNum(row.total,2)+'</td><td>'+row.hps.label+'</td></tr>'
-      )).join('');
-      if(pollTimer) clearInterval(pollTimer);
     }
   }
 
