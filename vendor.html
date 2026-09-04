@@ -39,6 +39,7 @@
   @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.55;}}
   .submit-row{display:flex;gap:8px;}
   .submit-row input{flex:1;}
+  .initial-price{font-size:12.5px;color:var(--amber);margin:8px 0 4px;}
   .err-msg{color:var(--red);font-size:12.5px;margin-top:10px;}
   .ok-msg{color:var(--green);font-size:12.5px;margin-top:10px;}
   .warn-msg{color:var(--amber);font-size:12.5px;margin-top:10px;}
@@ -65,8 +66,8 @@
 <body>
 <div id="app">
   <header class="masthead">
-    <h1>Panel Vendor — Ruang Bidding</h1>
-    <p>Portal ini hanya menampilkan data penawaran milik Anda. Panitia dan vendor lain tidak dapat melihat masukan Anda selain melalui panel ini.</p>
+    <h1 id="tenderTitle">Panel Vendor — Ruang Bidding</h1>
+    <p id="tenderDescription">Portal ini hanya menampilkan data penawaran milik Anda. Panitia dan vendor lain tidak dapat melihat masukan Anda selain melalui panel ini.</p>
   </header>
 
   <section id="loginPhase">
@@ -94,6 +95,7 @@
       <div class="vendor-name" id="vendorName">—</div>
       <div class="vendor-sub" id="vendorTeknis"></div>
       <div class="vendor-sub" id="vendorHps"></div>
+      <div class="initial-price" id="vendorHargaAwal"></div>
     </div>
 
     <div class="card">
@@ -105,7 +107,7 @@
 
       <div id="submitArea" class="hidden">
         <div class="submit-row">
-          <input type="number" id="priceInput" placeholder="Masukkan harga penawaran (Rp)">
+          <input type="text" id="priceInput" inputmode="decimal" placeholder="Rp 100.000.000">
           <button class="btn-primary" style="width:auto;" id="btnSubmit">Kirim</button>
         </div>
         <div id="submitMsg"></div>
@@ -150,6 +152,14 @@
   let lastView = null;
 
   function apiBase(){ return base || window.location.origin; }
+  function formatMoneyInput(value){
+    const raw = String(value).replace(/^Rp\s*/i,'').replace(/\./g,'');
+    const parts = raw.replace(/[^0-9,]/g,'').split(',');
+    const integer = parts[0] || '';
+    const formatted = integer.replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+    return 'Rp ' + formatted + (parts.length > 1 ? ',' + parts[1].slice(0,2) : '');
+  }
+  $('priceInput').addEventListener('input', ()=>{ $('priceInput').value = formatMoneyInput($('priceInput').value); });
   async function api(pathSuffix, opts){
     const res = await fetch(apiBase()+pathSuffix, opts);
     const data = await res.json().catch(()=>({}));
@@ -198,6 +208,13 @@
 
   $('btnSubmit').addEventListener('click', async ()=>{
     const val = $('priceInput').value;
+    const numericValue = parseMoneyInput(val);
+    const currentPrice = lastView?.currentRound?.currentPrice;
+    const previousPrice = currentPrice || lastView?.ownPriceHistory?.slice(-1)[0]?.price || lastView?.hargaAwal;
+    if(!numericValue || !previousPrice || numericValue >= previousPrice){
+      $('submitMsg').innerHTML = '<div class="err-msg">Harga harus lebih rendah dari penawaran sebelumnya atau harga awal.</div>';
+      return;
+    }
     try{
       const r = await api('/api/sessions/'+code+'/vendor/bid', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({token, price: val})});
       $('submitMsg').innerHTML = '<div class="'+(r.warning?'warn-msg':'ok-msg')+'">'+r.message+'</div>';
@@ -209,9 +226,13 @@
   });
 
   function render(v){
+    $('tenderTitle').textContent = v.title;
+    $('tenderDescription').textContent = v.description;
+    document.title = v.title;
     $('vendorName').textContent = v.vendorName;
     $('vendorTeknis').textContent = v.teknisRevealed ? ('Skor teknis tertimbang: ' + fmtNum(v.teknis,2) + ' pt (dari maks. 4)') : 'Skor teknis dirahasiakan selama proses bidding.';
     $('vendorHps').textContent = v.hpsRevealed ? ('HPS / Pagu Harga: ' + fmtMoney(v.hps)) : '';
+    $('vendorHargaAwal').textContent = 'Harga penawaran awal: ' + fmtMoney(v.hargaAwal) + '. Setiap bid harus lebih rendah dari harga sebelumnya.';
 
     const r = v.currentRound;
     if(!r){
@@ -229,6 +250,7 @@
       $('countdown').textContent = String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
       $('countdown').className = 'countdown mono' + (totalSec<=60?' danger':totalSec<=180?' warn':'');
       $('submitArea').classList.remove('hidden');
+      $('priceInput').placeholder = 'Di bawah ' + fmtMoney(r.currentPrice || v.hargaAwal);
       $('lockedNote').textContent = '';
       if(r.mySubmitted){
         $('lockedNote').textContent = 'Penawaran ronde ini sudah tercatat. Anda dapat mengirim ulang untuk memperbarui (harga baru harus lebih rendah dari ronde sebelumnya).';
@@ -267,6 +289,12 @@
       )).join('');
       if(pollTimer) clearInterval(pollTimer);
     }
+  }
+
+  function parseMoneyInput(value){
+    const normalized = String(value).replace(/^Rp\s*/i,'').replace(/\./g,'').replace(',','.');
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : 0;
   }
 
   setInterval(()=>{ if(lastView) render(lastView); }, 1000); // smooth countdown between polls

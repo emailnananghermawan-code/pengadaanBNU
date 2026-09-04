@@ -24,9 +24,11 @@
   section{margin-bottom:32px;}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:22px;}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
   label{display:block;font-size:12.5px;color:var(--text-dim);margin-bottom:6px;}
-  input{width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);padding:10px 12px;border-radius:var(--radius);font-family:'IBM Plex Mono',monospace;font-size:14px;}
-  input:focus{outline:none;border-color:var(--amber);}
+  input,textarea{width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);padding:10px 12px;border-radius:var(--radius);font-family:'IBM Plex Mono',monospace;font-size:14px;}
+  input:focus,textarea:focus{outline:none;border-color:var(--amber);}
+  textarea{resize:vertical;line-height:1.5;}
   .field{margin-bottom:16px;}
   .fieldnote{font-size:11.5px;color:var(--text-dim);margin-top:5px;}
   .checkrow{display:flex;align-items:center;gap:8px;margin-bottom:16px;}
@@ -87,15 +89,16 @@
   .result-hero .winner-score{color:var(--text-dim);font-size:14px;}
   .sessioncode{font-family:'IBM Plex Mono',monospace;font-size:13px;background:var(--panel-2);border:1px solid var(--line);padding:4px 10px;border-radius:20px;}
   .err-banner{color:var(--red);font-size:13px;margin-top:10px;}
-  @media (max-width:760px){ .grid2, .vendor-panels{grid-template-columns:1fr;} .round-bar{flex-direction:column;align-items:flex-start;} }
+  @media (max-width:900px){ .grid3{grid-template-columns:1fr 1fr;} }
+  @media (max-width:760px){ .grid2, .grid3, .vendor-panels{grid-template-columns:1fr;} .round-bar{flex-direction:column;align-items:flex-start;} }
 </style>
 </head>
 <body>
 <div id="app">
   <header class="masthead">
     <div>
-      <h1>Panel Panitia — Ruang Bidding Tender Terbatas</h1>
-      <p>Penyampaian Materi Trusted Wealth Advisor untuk Emerald RM. Panitia mengontrol ronde; Vendor A dan Vendor B mengirim penawaran dari perangkat masing-masing melalui link Peserta.</p>
+      <h1 id="tenderTitle">Panel Panitia — Ruang Bidding Tender Terbatas</h1>
+      <p id="tenderDescription">Penyampaian Materi Trusted Wealth Advisor untuk Emerald RM. Panitia mengontrol ronde; Vendor A dan Vendor B mengirim penawaran dari perangkat masing-masing melalui link Peserta.</p>
     </div>
     <button class="reset-btn no-print" id="btnNewSession">Mulai Sesi Baru</button>
   </header>
@@ -107,6 +110,14 @@
         <label>Alamat Server (Base URL)</label>
         <input type="text" id="baseUrl" placeholder="https://server-anda.example.com">
         <div class="fieldnote">Alamat tempat server.js ini di-deploy. Kosongkan untuk memakai host saat ini secara otomatis.</div>
+      </div>
+      <div class="field">
+        <label>Judul Pengadaan</label>
+        <input type="text" id="tenderTitleInput" value="Panel Panitia — Ruang Bidding Tender Terbatas" placeholder="mis. Pengadaan Jasa Konsultan">
+      </div>
+      <div class="field">
+        <label>Deskripsi Pengadaan</label>
+        <textarea id="tenderDescriptionInput" rows="3" placeholder="Masukkan deskripsi pengadaan">Penyampaian Materi Trusted Wealth Advisor untuk Emerald RM. Panitia mengontrol ronde; Vendor A dan Vendor B mengirim penawaran dari perangkat masing-masing melalui link Peserta.</textarea>
       </div>
       <div class="section-title">Daftar Vendor</div>
       <div id="vendorSetupList"></div>
@@ -120,6 +131,11 @@
           <label>HPS / Pagu Harga (opsional)</label>
           <input type="number" id="hpsInput" placeholder="mis. 600000000">
           <div class="fieldnote">Jika diisi, harga akhir wajib ≤ HPS agar vendor berhak menang.</div>
+        </div>
+        <div class="field">
+          <label>Nilai Wajar Pengadaan (opsional)</label>
+          <input type="text" id="nilaiWajarInput" class="money-input" inputmode="decimal" placeholder="Rp 500.000.000">
+          <div class="fieldnote">Jika diisi, penawaran di bawah nilai wajar tidak memenuhi syarat skor. Pembanding skor adalah nilai terendah antara nilai wajar dan HPS.</div>
         </div>
       </div>
       <div class="checkrow"><input type="checkbox" id="hpsRevealed"><label for="hpsRevealed">Tampilkan nilai HPS ke Vendor</label></div>
@@ -150,9 +166,9 @@
     <div class="vendor-panels" id="vendorPanels"></div>
 
     <div class="card">
-      <div class="section-title">Peringkat Live <span class="dim">Merit point (skala 1–5) = (skor teknis × 80%) + (skor harga × 20%)</span></div>
+      <div class="section-title">Peringkat Live <span class="dim">Skor akhir (maks. 5) = skor teknis (maks. 4) + skor harga berbobot 20% (maks. 1)</span></div>
       <table>
-        <thead><tr><th>#</th><th>Vendor</th><th>Skor Teknis (Tertimbang)</th><th>Harga Berlaku</th><th>Skor Harga</th><th>Total Merit Point</th><th>Status HPS</th></tr></thead>
+        <thead><tr><th>#</th><th>Vendor</th><th>Skor Teknis (Maks. 4)</th><th>Harga Berlaku</th><th>Skor Harga (Maks. 1)</th><th>Total (Maks. 5)</th><th>Status Harga</th></tr></thead>
         <tbody id="leaderboardBody"></tbody>
       </table>
     </div>
@@ -223,6 +239,15 @@
 
   function apiBase(){ return base || window.location.origin; }
 
+  function formatMoneyInput(value){
+    const raw = String(value).replace(/^Rp\s*/i,'').replace(/\./g,'');
+    const parts = raw.replace(/[^0-9,]/g,'').split(',');
+    const integer = parts[0] || '';
+    const formatted = integer.replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+    return 'Rp ' + formatted + (parts.length > 1 ? ',' + parts[1].slice(0,2) : '');
+  }
+  document.querySelectorAll('.money-input').forEach((input)=>input.addEventListener('input', ()=>{ input.value = formatMoneyInput(input.value); }));
+
   async function api(pathSuffix, opts){
     const res = await fetch(apiBase()+pathSuffix, opts);
     const data = await res.json().catch(()=>({}));
@@ -232,10 +257,12 @@
 
   function addVendorRow(name='', teknis=''){
     const row = document.createElement('div');
-    row.className = 'grid2 vendor-input-row';
-    row.innerHTML = '<div class="field"><label>Nama Vendor</label><input class="vendor-name-input" type="text" placeholder="mis. PT Vendor"></div><div class="field"><label>Skor Teknis (0–4)</label><input class="vendor-teknis-input" type="number" min="0" max="4" step="0.01" placeholder="mis. 3.36"><button class="btn-ghost remove-vendor" type="button">Hapus Vendor</button></div>';
+    row.className = 'grid3 vendor-input-row';
+    row.innerHTML = '<div class="field"><label>Nama Vendor</label><input class="vendor-name-input" type="text" placeholder="mis. PT Vendor"></div><div class="field"><label>Skor Teknis (0–4)</label><input class="vendor-teknis-input" type="number" min="0" max="4" step="0.01" placeholder="mis. 3.36"></div><div class="field"><label>Harga Penawaran Awal</label><input class="vendor-harga-awal-input money-input" type="text" inputmode="decimal" placeholder="Rp 100.000.000"><button class="btn-ghost remove-vendor" type="button">Hapus Vendor</button></div>';
     row.querySelector('.vendor-name-input').value = name;
     row.querySelector('.vendor-teknis-input').value = teknis;
+    const moneyInput = row.querySelector('.vendor-harga-awal-input');
+    moneyInput.addEventListener('input', ()=>{ moneyInput.value = formatMoneyInput(moneyInput.value); });
     $('vendorSetupList').appendChild(row);
     row.querySelector('.remove-vendor').addEventListener('click', ()=>{
       if(document.querySelectorAll('.vendor-input-row').length > 2) row.remove();
@@ -252,15 +279,21 @@
       vendors: [...document.querySelectorAll('.vendor-input-row')].map((row)=>({
         name: row.querySelector('.vendor-name-input').value.trim(),
         teknis: row.querySelector('.vendor-teknis-input').value,
+        hargaAwal: row.querySelector('.vendor-harga-awal-input').value,
       })),
+      title: $('tenderTitleInput').value.trim(),
+      description: $('tenderDescriptionInput').value.trim(),
       durasiMenit: $('durasiMenit').value,
       hps: $('hpsInput').value,
+      nilaiWajar: $('nilaiWajarInput').value,
       hpsRevealed: $('hpsRevealed').checked,
       teknisRevealed: $('teknisRevealed').checked,
     };
     try{
       const data = await api('/api/sessions', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
       sessionInfo = data;
+      $('tenderTitle').textContent = data.title;
+      $('tenderDescription').textContent = data.description;
       $('sessionCodeLbl').textContent = data.code;
       $('vendorLinks').innerHTML = data.vendors.map((vendor)=>{
         const link = apiBase()+'/vendor?code='+data.code+'&token='+vendor.token;
@@ -311,6 +344,9 @@
 
   // ---------- RENDER ----------
   function render(v){
+    $('tenderTitle').textContent = v.title;
+    $('tenderDescription').textContent = v.description;
+    document.title = v.title;
     $('vendorPanels').innerHTML = v.vendors.map((vendor, index)=>{
       const history = v.rounds.filter((round)=>round.status==='closed').map((round)=>'<span class="price-chip">R'+round.num+': '+fmtMoney(round.bids[vendor.id])+'</span>').join('');
       const activeRound = v.rounds.find((round)=>round.status==='active');
@@ -370,10 +406,22 @@
   $('btnDownloadCsv').addEventListener('click', ()=>{
     if(!lastView) return;
     const v = lastView;
-    let csv = 'Ronde,Dibuka,Ditutup,' + v.vendors.map((vendor)=>'Harga '+vendor.name).join(',') + ',Unggul Sementara,Status\n';
+    const csvCell = (value)=>'"'+String(value == null ? '' : value).replace(/"/g,'""')+'"';
+    let csv = 'LOG RONDE\n';
+    csv += ['Ronde','Dibuka','Ditutup',...v.vendors.map((vendor)=>'Harga '+vendor.name),'Unggul Sementara','Status'].map(csvCell).join(',')+'\n';
     v.rounds.forEach(r=>{
       const leader = r.status==='closed' ? r.leaderLabel : '';
-      csv += [r.num, fmtTime(r.openedAt), fmtTime(r.closedAt), ...v.vendors.map((vendor)=>r.bids[vendor.id] || ''), '"'+leader+'"', r.status].join(',') + '\n';
+      csv += [r.num, fmtTime(r.openedAt), fmtTime(r.closedAt), ...v.vendors.map((vendor)=>r.bids[vendor.id] || ''), leader, r.status].map(csvCell).join(',') + '\n';
+    });
+    csv += '\nLOG SETIAP INPUT HARGA LIVE\n';
+    csv += ['Ronde','Waktu','Vendor','Harga Baru','Unggul Sementara'].map(csvCell).join(',')+'\n';
+    v.rounds.forEach((round)=> (round.bidLog || []).forEach((event)=>{
+      csv += [round.num, fmtTime(event.at), event.vendorName, event.price, event.leaderLabel].map(csvCell).join(',')+'\n';
+    }));
+    csv += '\nHASIL AKHIR\n';
+    csv += ['Peringkat','Vendor','Skor Teknis','Harga Final','Skor Harga (0-1)','Skor Akhir (0-5)','Status Harga'].map(csvCell).join(',')+'\n';
+    v.leaderboard.forEach((row,index)=>{
+      csv += [index + 1, row.name, row.teknis, row.price == null ? '' : row.price, row.score == null ? '' : row.score, row.total, row.hps.label].map(csvCell).join(',')+'\n';
     });
     const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
     const url = URL.createObjectURL(blob);
@@ -410,7 +458,10 @@
     sessionInfo = null; lastView = null;
     $('vendorSetupList').innerHTML = '';
     addVendorRow(); addVendorRow();
+    $('tenderTitleInput').value = 'Panel Panitia — Ruang Bidding Tender Terbatas';
+    $('tenderDescriptionInput').value = 'Penyampaian Materi Trusted Wealth Advisor untuk Emerald RM. Panitia mengontrol ronde; Vendor A dan Vendor B mengirim penawaran dari perangkat masing-masing melalui link Peserta.';
     $('hpsInput').value = '';
+    $('nilaiWajarInput').value = '';
     $('durasiMenit').value = 15;
     $('hpsRevealed').checked = false;
     $('teknisRevealed').checked = false;

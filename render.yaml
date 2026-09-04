@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: pengadaan-bnu
+    runtime: node
+    buildCommand: npm ci
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production

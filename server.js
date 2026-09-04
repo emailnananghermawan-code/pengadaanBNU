@@ -41,17 +41,24 @@ function genToken() {
 // ---------------------------------------------------------------------------
 // LOGIKA SKOR (identik dengan tools Panitia sebelumnya)
 // ---------------------------------------------------------------------------
-function computeScores(prices) {
+function computeScores(prices, session) {
   const valid = Object.values(prices).filter((p) => p != null && p > 0);
-  const lowest = valid.length ? Math.min(...valid) : null;
+  const lowestBid = valid.length ? Math.min(...valid) : null;
+  const referencePrices = [];
+  if (session?.nilaiWajar != null) {
+    referencePrices.push(session.nilaiWajar);
+    if (session.hps != null) referencePrices.push(session.hps);
+  }
+  const minimumReference = referencePrices.length ? Math.min(...referencePrices) : null;
+  const lowest = minimumReference == null ? lowestBid : Math.max(lowestBid || minimumReference, minimumReference);
   const scores = {};
   for (const [id, price] of Object.entries(prices)) {
-    scores[id] = price != null && lowest != null ? (lowest / price) * 5 : 0;
+    scores[id] = price != null && lowest != null && price >= lowest ? lowest / price : 0;
   }
   return { lowest, scores };
 }
 function totalMerit(teknisTertimbang, hargaScore, hasPrice) {
-  return teknisTertimbang + (hasPrice ? hargaScore * 0.2 : 0);
+  return teknisTertimbang + (hasPrice ? hargaScore : 0);
 }
 function hpsStatus(price, hps) {
   if (hps == null) return { label: 'Tanpa HPS', eligible: true };
@@ -59,6 +66,23 @@ function hpsStatus(price, hps) {
   return price <= hps
     ? { label: 'Memenuhi HPS', eligible: true }
     : { label: 'Melebihi HPS', eligible: false };
+}
+function fairValueStatus(price, nilaiWajar) {
+  if (nilaiWajar == null || price == null) return { label: null, eligible: true };
+  return price >= nilaiWajar
+    ? { label: 'Memenuhi nilai wajar', eligible: true }
+    : { label: 'Di bawah nilai wajar', eligible: false };
+}
+function priceStatus(price, session) {
+  const hps = hpsStatus(price, session.hps);
+  const fair = fairValueStatus(price, session.nilaiWajar);
+  return { label: fair.label || hps.label, eligible: hps.eligible && fair.eligible };
+}
+function parseMoney(value) {
+  if (typeof value === 'number') return value;
+  if (typeof value !== 'string') return NaN;
+  const normalized = value.trim().replace(/^Rp\s*/i, '').replace(/\s/g, '').replace(/\./g, '').replace(',', '.');
+  return normalized ? parseFloat(normalized) : NaN;
 }
 
 function vendorForToken(session, token) {
@@ -83,10 +107,10 @@ function effectivePrice(session, vendorId) {
 }
 
 function evaluateRound(session, round) {
-  const sc = computeScores(round.bids);
+  const sc = computeScores(round.bids, session);
   const candidates = session.vendors.map((vendor) => {
     const price = round.bids[vendor.id];
-    return { id: vendor.id, name: vendor.name, total: totalMerit(vendor.teknis, sc.scores[vendor.id], price != null), hps: hpsStatus(price, session.hps), price };
+    return { id: vendor.id, name: vendor.name, total: totalMerit(vendor.teknis, sc.scores[vendor.id], price != null), hps: priceStatus(price, session), price };
   });
   const ranked = candidates.sort((a, b) => {
     if (a.hps.eligible !== b.hps.eligible) return a.hps.eligible ? -1 : 1;
@@ -110,7 +134,7 @@ function closeRoundInternal(session, round) {
   for (const vendor of session.vendors) {
     if (round.bids[vendor.id] == null) round.bids[vendor.id] = lastClosedPrice(session, vendor.id, round);
   }
-  const sc = computeScores(round.bids);
+  const sc = computeScores(round.bids, session);
   round.scores = Object.fromEntries(session.vendors.map((vendor) => [vendor.id, round.bids[vendor.id] != null ? sc.scores[vendor.id] : null]));
 }
 
@@ -119,9 +143,9 @@ function closeRoundInternal(session, round) {
 // ---------------------------------------------------------------------------
 function buildAdminView(session) {
   const prices = Object.fromEntries(session.vendors.map((vendor) => [vendor.id, effectivePrice(session, vendor.id)]));
-  const sc = computeScores(prices);
+  const sc = computeScores(prices, session);
   const leaderboard = session.vendors.map((vendor) => ({ id: vendor.id, name: vendor.name, teknis: vendor.teknis, price: prices[vendor.id], score: prices[vendor.id] != null ? sc.scores[vendor.id] : null, total: totalMerit(vendor.teknis, sc.scores[vendor.id], prices[vendor.id] != null) }))
-    .map((r) => ({ ...r, hps: hpsStatus(r.price, session.hps) }))
+    .map((r) => ({ ...r, hps: priceStatus(r.price, session) }))
     .sort((a, b) => {
       if (a.hps.eligible !== b.hps.eligible) return a.hps.eligible ? -1 : 1;
       return b.total - a.total;
@@ -141,10 +165,13 @@ function buildAdminView(session) {
 
   return {
     code: session.code,
+    title: session.title,
+    description: session.description,
     vendors: session.vendors.map(({ id, name, teknis }) => ({ id, name, teknis })),
     vendorLinks: Object.fromEntries(session.vendors.map((vendor) => [vendor.id, vendor.token])),
     durasiSec: session.durasiSec,
     hps: session.hps,
+    nilaiWajar: session.nilaiWajar,
     hpsRevealed: session.hpsRevealed,
     teknisRevealed: session.teknisRevealed,
     phase: session.phase,
@@ -199,15 +226,19 @@ function buildVendorView(session, vendor) {
 
   return {
     code: session.code,
+    title: session.title,
+    description: session.description,
     vendorLetter: vendor.id,
     vendorName: vendor.name,
     teknis: session.teknisRevealed ? vendor.teknis : null,
     teknisRevealed: session.teknisRevealed,
     hps: session.hpsRevealed ? session.hps : null,
     hpsRevealed: session.hpsRevealed,
+    nilaiWajar: session.nilaiWajar,
+    hargaAwal: vendor.hargaAwal,
     durasiSec: session.durasiSec,
     phase: session.phase,
-    currentRound: round ? { num: round.num, status: round.status, deadlineAt: round.deadlineAt, mySubmitted: round.bids[priceKey] != null } : null,
+    currentRound: round ? { num: round.num, status: round.status, deadlineAt: round.deadlineAt, mySubmitted: round.bids[priceKey] != null, currentPrice: round.bids[priceKey] } : null,
     ownPriceHistory: ownHistory,
     liveStatus,
     lastStatus,
@@ -286,29 +317,39 @@ const server = http.createServer(async (req, res) => {
     } catch {
       return sendJson(res, 400, { error: 'Body tidak valid.' });
     }
-    const { vendors: vendorInput, durasiMenit, hps, hpsRevealed, teknisRevealed } = body;
+    const { vendors: vendorInput, title, description, durasiMenit, hps, nilaiWajar, hpsRevealed, teknisRevealed } = body;
     if (!Array.isArray(vendorInput) || vendorInput.length < 2)
       return sendJson(res, 400, { error: 'Minimal dua vendor wajib diisi.' });
     const vendors = vendorInput.map((vendor, index) => ({
       id: 'V' + (index + 1),
       name: String(vendor.name || '').trim(),
       teknis: parseFloat(vendor.teknis),
+      hargaAwal: parseMoney(vendor.hargaAwal),
       token: genToken(),
     }));
     if (vendors.some((vendor) => !vendor.name)) return sendJson(res, 400, { error: 'Nama semua vendor wajib diisi.' });
     if (vendors.some((vendor) => isNaN(vendor.teknis) || vendor.teknis < 0 || vendor.teknis > 4))
       return sendJson(res, 400, { error: 'Skor teknis semua vendor wajib 0–4.' });
+    if (vendors.some((vendor) => isNaN(vendor.hargaAwal) || vendor.hargaAwal <= 0))
+      return sendJson(res, 400, { error: 'Harga penawaran awal semua vendor wajib diisi dan lebih besar dari 0.' });
     const durasi = parseFloat(durasiMenit);
     if (isNaN(durasi) || durasi <= 0) return sendJson(res, 400, { error: 'Durasi ronde tidak valid.' });
+    const parsedHps = hps != null && hps !== '' ? parseMoney(hps) : null;
+    const parsedNilaiWajar = nilaiWajar != null && nilaiWajar !== '' ? parseMoney(nilaiWajar) : null;
+    if (parsedHps != null && (!Number.isFinite(parsedHps) || parsedHps <= 0)) return sendJson(res, 400, { error: 'HPS harus lebih besar dari 0.' });
+    if (parsedNilaiWajar != null && (!Number.isFinite(parsedNilaiWajar) || parsedNilaiWajar <= 0)) return sendJson(res, 400, { error: 'Nilai wajar harus lebih besar dari 0.' });
 
     let code;
     do { code = genCode(); } while (sessions.has(code));
     const session = {
       code,
       adminToken: genToken(),
+      title: String(title || '').trim() || 'Panel Panitia — Ruang Bidding Tender Terbatas',
+      description: String(description || '').trim() || 'Panitia mengontrol ronde dan vendor mengirim penawaran melalui link Peserta.',
       vendors,
       durasiSec: Math.round(durasi * 60),
-      hps: hps != null && hps !== '' ? parseFloat(hps) : null,
+      hps: parsedHps,
+      nilaiWajar: parsedNilaiWajar,
       hpsRevealed: !!hpsRevealed,
       teknisRevealed: !!teknisRevealed,
       phase: 'running',
@@ -319,7 +360,9 @@ const server = http.createServer(async (req, res) => {
     return sendJson(res, 200, {
       code,
       adminToken: session.adminToken,
-      vendors: session.vendors.map(({ id, name, token }) => ({ id, name, token })),
+      title: session.title,
+      description: session.description,
+      vendors: session.vendors.map(({ id, name, token, hargaAwal }) => ({ id, name, token, hargaAwal })),
     });
   }
 
@@ -381,9 +424,9 @@ const server = http.createServer(async (req, res) => {
       if (active && active.status === 'active') return sendJson(res, 400, { error: 'Tutup ronde aktif dahulu.' });
 
       const prices = Object.fromEntries(session.vendors.map((vendor) => [vendor.id, lastClosedPrice(session, vendor.id)]));
-      const sc = computeScores(prices);
+      const sc = computeScores(prices, session);
       const rows = session.vendors.map((vendor) => ({ id: vendor.id, name: vendor.name, teknis: vendor.teknis, price: prices[vendor.id], score: prices[vendor.id] != null ? sc.scores[vendor.id] : null, total: totalMerit(vendor.teknis, sc.scores[vendor.id], prices[vendor.id] != null) }))
-        .map((r) => ({ ...r, hps: hpsStatus(r.price, session.hps) }))
+        .map((r) => ({ ...r, hps: priceStatus(r.price, session) }))
         .sort((a, b) => {
           if (a.hps.eligible !== b.hps.eligible) return a.hps.eligible ? -1 : 1;
           return b.total - a.total;
@@ -430,11 +473,13 @@ const server = http.createServer(async (req, res) => {
       if (!vendor) return sendJson(res, 403, { error: 'Token akses tidak valid.' });
       const r = currentRound(session);
       if (!r || r.status !== 'active') return sendJson(res, 400, { error: 'Belum ada ronde aktif untuk menerima penawaran.' });
-      const val = parseFloat(body.price);
+      const val = parseMoney(body.price);
       if (isNaN(val) || val <= 0) return sendJson(res, 400, { error: 'Masukkan angka harga yang valid.' });
-      const prevPrice = lastClosedPrice(session, vendor.id);
-      if (prevPrice != null && val >= prevPrice) {
-        return sendJson(res, 400, { error: 'Harga harus lebih rendah dari ronde sebelumnya (Rp ' + Number(prevPrice).toLocaleString('id-ID') + ').' });
+      const currentPrice = r.bids[vendor.id];
+      const previousClosedPrice = lastClosedPrice(session, vendor.id);
+      const previousPrice = currentPrice != null ? currentPrice : (previousClosedPrice != null ? previousClosedPrice : vendor.hargaAwal);
+      if (val >= previousPrice) {
+        return sendJson(res, 400, { error: 'Harga harus lebih rendah dari penawaran sebelumnya (Rp ' + Number(previousPrice).toLocaleString('id-ID') + ').' });
       }
       r.bids[vendor.id] = val;
       const evaluation = evaluateRound(session, r);
@@ -447,6 +492,7 @@ const server = http.createServer(async (req, res) => {
       });
       let warning = null;
       if (session.hps != null && val > session.hps) warning = 'Peringatan: harga di atas HPS, tetap tersimpan.';
+      if (session.nilaiWajar != null && val < session.nilaiWajar) warning = 'Peringatan: harga di bawah nilai wajar, tidak memenuhi syarat skor.';
       return sendJson(res, 200, { ok: true, message: warning || 'Harga diterima.', warning: !!warning });
     }
   }
