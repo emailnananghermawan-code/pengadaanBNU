@@ -250,8 +250,9 @@
 
   async function api(pathSuffix, opts){
     const res = await fetch(apiBase()+pathSuffix, opts);
-    const data = await res.json().catch(()=>({}));
-    if(!res.ok) throw new Error(data.error || 'Terjadi kesalahan.');
+    const data = await res.json().catch(()=>null);
+    if(!res.ok) throw new Error(data?.error || ('Server menolak permintaan (HTTP '+res.status+').'));
+    if(!data) throw new Error('Respons server tidak valid. Periksa URL server dan deployment Render.');
     return data;
   }
 
@@ -275,8 +276,18 @@
   $('btnStartSession').addEventListener('click', async ()=>{
     $('setupErr').textContent = '';
     base = $('baseUrl').value.trim();
+    const vendorRows = [...document.querySelectorAll('.vendor-input-row')];
+    const missingVendor = vendorRows.findIndex((row)=>
+      !row.querySelector('.vendor-name-input').value.trim() ||
+      !row.querySelector('.vendor-teknis-input').value ||
+      !parseMoneyInput(row.querySelector('.vendor-harga-awal-input').value)
+    );
+    if(missingVendor !== -1){
+      $('setupErr').textContent = 'Lengkapi nama, skor teknis, dan harga penawaran awal Vendor '+(missingVendor+1)+'.';
+      return;
+    }
     const payload = {
-      vendors: [...document.querySelectorAll('.vendor-input-row')].map((row)=>({
+      vendors: vendorRows.map((row)=>({
         name: row.querySelector('.vendor-name-input').value.trim(),
         teknis: row.querySelector('.vendor-teknis-input').value,
         hargaAwal: row.querySelector('.vendor-harga-awal-input').value,
@@ -307,6 +318,12 @@
       $('setupErr').textContent = e.message;
     }
   });
+
+  function parseMoneyInput(value){
+    const normalized = String(value).replace(/^Rp\s*/i,'').replace(/\./g,'').replace(',','.');
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
 
   document.addEventListener('click', (e)=>{
     if(e.target.dataset && e.target.dataset.copy){

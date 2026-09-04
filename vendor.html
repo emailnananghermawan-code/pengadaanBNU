@@ -162,8 +162,9 @@
   $('priceInput').addEventListener('input', ()=>{ $('priceInput').value = formatMoneyInput($('priceInput').value); });
   async function api(pathSuffix, opts){
     const res = await fetch(apiBase()+pathSuffix, opts);
-    const data = await res.json().catch(()=>({}));
-    if(!res.ok) throw new Error(data.error || 'Terjadi kesalahan.');
+    const data = await res.json().catch(()=>null);
+    if(!res.ok) throw new Error(data?.error || ('Server menolak permintaan (HTTP '+res.status+').'));
+    if(!data) throw new Error('Respons server tidak valid. Periksa URL server dan deployment Render.');
     return data;
   }
 
