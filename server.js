@@ -336,7 +336,7 @@ const server = http.createServer(async (req, res) => {
     if (isNaN(durasi) || durasi <= 0) return sendJson(res, 400, { error: 'Durasi ronde tidak valid.' });
     const parsedHps = hps != null && hps !== '' ? parseMoney(hps) : null;
     const parsedNilaiWajar = nilaiWajar != null && nilaiWajar !== '' ? parseMoney(nilaiWajar) : null;
-    if (parsedHps != null && (!Number.isFinite(parsedHps) || parsedHps <= 0)) return sendJson(res, 400, { error: 'HPS harus lebih besar dari 0.' });
+    if (parsedHps == null || !Number.isFinite(parsedHps) || parsedHps <= 0) return sendJson(res, 400, { error: 'HPS / Pagu Harga wajib diisi dan harus lebih besar dari 0.' });
     if (parsedNilaiWajar != null && (!Number.isFinite(parsedNilaiWajar) || parsedNilaiWajar <= 0)) return sendJson(res, 400, { error: 'Nilai wajar harus lebih besar dari 0.' });
 
     let code;

@@ -98,7 +98,7 @@
   <header class="masthead">
     <div>
       <h1 id="tenderTitle">Panel Panitia — Ruang Bidding Tender Terbatas</h1>
-      <p id="tenderDescription">Penyampaian Materi Trusted Wealth Advisor untuk Emerald RM. Panitia mengontrol ronde; Vendor A dan Vendor B mengirim penawaran dari perangkat masing-masing melalui link Peserta.</p>
+      <p id="tenderDescription" class="hidden"></p>
     </div>
     <button class="reset-btn no-print" id="btnNewSession">Mulai Sesi Baru</button>
   </header>
@@ -113,11 +113,11 @@
       </div>
       <div class="field">
         <label>Judul Pengadaan</label>
-        <input type="text" id="tenderTitleInput" value="Panel Panitia — Ruang Bidding Tender Terbatas" placeholder="mis. Pengadaan Jasa Konsultan">
+        <input type="text" id="tenderTitleInput" placeholder="mis. Pengadaan Jasa Konsultan">
       </div>
       <div class="field">
         <label>Deskripsi Pengadaan</label>
-        <textarea id="tenderDescriptionInput" rows="3" placeholder="Masukkan deskripsi pengadaan">Penyampaian Materi Trusted Wealth Advisor untuk Emerald RM. Panitia mengontrol ronde; Vendor A dan Vendor B mengirim penawaran dari perangkat masing-masing melalui link Peserta.</textarea>
+        <textarea id="tenderDescriptionInput" rows="3" placeholder="Masukkan deskripsi pengadaan"></textarea>
       </div>
       <div class="section-title">Daftar Vendor</div>
       <div id="vendorSetupList"></div>
@@ -128,9 +128,9 @@
           <input type="number" id="durasiMenit" min="1" step="1" value="15">
         </div>
         <div class="field">
-          <label>HPS / Pagu Harga (opsional)</label>
-          <input type="number" id="hpsInput" placeholder="mis. 600000000">
-          <div class="fieldnote">Jika diisi, harga akhir wajib ≤ HPS agar vendor berhak menang.</div>
+          <label>HPS / Pagu Harga (wajib)</label>
+          <input type="text" id="hpsInput" class="money-input" inputmode="decimal" placeholder="Rp 600.000.000">
+          <div class="fieldnote">Harga akhir wajib ≤ HPS agar vendor berhak menang.</div>
         </div>
         <div class="field">
           <label>Nilai Wajar Pengadaan (opsional)</label>
@@ -300,11 +300,20 @@
       hpsRevealed: $('hpsRevealed').checked,
       teknisRevealed: $('teknisRevealed').checked,
     };
+    if(!payload.title || !payload.description){
+      $('setupErr').textContent = 'Judul dan deskripsi pengadaan wajib diisi.';
+      return;
+    }
+    if(!parseMoneyInput(payload.hps)){
+      $('setupErr').textContent = 'HPS / Pagu Harga wajib diisi dengan nilai Rupiah yang valid.';
+      return;
+    }
     try{
       const data = await api('/api/sessions', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
       sessionInfo = data;
       $('tenderTitle').textContent = data.title;
       $('tenderDescription').textContent = data.description;
+      $('tenderDescription').classList.remove('hidden');
       $('sessionCodeLbl').textContent = data.code;
       $('vendorLinks').innerHTML = data.vendors.map((vendor)=>{
         const link = apiBase()+'/vendor?code='+data.code+'&token='+vendor.token;
@@ -475,8 +484,8 @@
     sessionInfo = null; lastView = null;
     $('vendorSetupList').innerHTML = '';
     addVendorRow(); addVendorRow();
-    $('tenderTitleInput').value = 'Panel Panitia — Ruang Bidding Tender Terbatas';
-    $('tenderDescriptionInput').value = 'Penyampaian Materi Trusted Wealth Advisor untuk Emerald RM. Panitia mengontrol ronde; Vendor A dan Vendor B mengirim penawaran dari perangkat masing-masing melalui link Peserta.';
+    $('tenderTitleInput').value = '';
+    $('tenderDescriptionInput').value = '';
     $('hpsInput').value = '';
     $('nilaiWajarInput').value = '';
     $('durasiMenit').value = 15;
@@ -485,6 +494,9 @@
     $('setupPhase').classList.remove('hidden');
     $('biddingPhase').classList.add('hidden');
     $('resultPhase').classList.add('hidden');
+    $('tenderDescription').textContent = '';
+    $('tenderDescription').classList.add('hidden');
+    document.title = 'Panel Panitia — Ruang Bidding Tender Terbatas';
   });
 
   setInterval(()=>{ if(lastView) render(lastView); }, 1000); // smooth countdown between polls
