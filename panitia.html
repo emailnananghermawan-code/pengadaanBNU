@@ -114,11 +114,11 @@
       </div>
       <div class="field">
         <label>Judul Pengadaan</label>
-        <input type="text" id="tenderTitleInput" value="Pengadaan BNU" placeholder="mis. Pengadaan Jasa Konsultan">
+        <input type="text" id="tenderTitleInput" placeholder="mis. Pengadaan Jasa Konsultan">
       </div>
       <div class="field">
         <label>Deskripsi Pengadaan</label>
-        <textarea id="tenderDescriptionInput" rows="3" placeholder="Masukkan deskripsi pengadaan">Panitia mengontrol ronde; setiap vendor mengirim penawaran dari perangkat masing-masing melalui link Peserta.</textarea>
+        <textarea id="tenderDescriptionInput" rows="3" placeholder="Masukkan deskripsi pengadaan"></textarea>
       </div>
       <div class="section-title">Daftar Vendor</div>
       <div id="vendorSetupList"></div>
@@ -493,8 +493,8 @@
     sessionInfo = null; lastView = null;
     $('vendorSetupList').innerHTML = '';
     addVendorRow(); addVendorRow();
-    $('tenderTitleInput').value = 'Pengadaan BNU';
-    $('tenderDescriptionInput').value = 'Panitia mengontrol ronde; setiap vendor mengirim penawaran dari perangkat masing-masing melalui link Peserta.';
+    $('tenderTitleInput').value = '';
+    $('tenderDescriptionInput').value = '';
     $('baseUrl').value = 'https://pengadaanbnu-2.onrender.com';
     $('hpsInput').value = '';
     $('nilaiWajarInput').value = '';
