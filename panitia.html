@@ -54,6 +54,7 @@
   .countdown.danger{color:var(--red);animation:pulse 1s infinite;}
   @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.55;}}
   .round-actions{display:flex;gap:10px;flex-wrap:wrap;}
+  .hps-live{font-size:12.5px;color:var(--amber);margin-top:4px;}
   .vendor-panels{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;}
   .vendor-panel{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:var(--radius);padding:20px;}
   .vendor-panel.a{--accent:var(--vendorA);}
@@ -154,7 +155,7 @@
 
     <div class="round-bar">
       <div class="round-status">
-        <div><div class="roundlabel">Status Ronde</div><div class="roundnum" id="roundNumDisplay">Belum dimulai <span class="statuspill idle">idle</span></div></div>
+        <div><div class="roundlabel">Status Ronde</div><div class="roundnum" id="roundNumDisplay">Belum dimulai <span class="statuspill idle">idle</span></div><div class="hps-live" id="hpsLiveDisplay"></div></div>
       </div>
       <div class="countdown mono" id="countdownDisplay">--:--</div>
       <div class="round-actions no-print">
@@ -373,6 +374,7 @@
     $('tenderTitle').textContent = v.title;
     $('tenderDescription').textContent = v.description;
     document.title = v.title;
+    $('hpsLiveDisplay').textContent = 'HPS / Pagu Harga: ' + fmtMoney(v.hps);
     $('vendorPanels').innerHTML = v.vendors.map((vendor, index)=>{
       const history = v.rounds.filter((round)=>round.status==='closed').map((round)=>'<span class="price-chip">R'+round.num+': '+fmtMoney(round.bids[vendor.id])+'</span>').join('');
       const activeRound = v.rounds.find((round)=>round.status==='active');

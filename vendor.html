@@ -231,9 +231,9 @@
     $('tenderDescription').textContent = v.description;
     document.title = v.title;
     $('vendorName').textContent = v.vendorName;
-    $('vendorTeknis').textContent = v.teknisRevealed ? ('Skor teknis tertimbang: ' + fmtNum(v.teknis,2) + ' pt (dari maks. 4)') : 'Skor teknis dirahasiakan selama proses bidding.';
-    $('vendorHps').textContent = v.hpsRevealed ? ('HPS / Pagu Harga: ' + fmtMoney(v.hps)) : '';
-    $('vendorHargaAwal').textContent = 'Harga penawaran awal: ' + fmtMoney(v.hargaAwal) + '. Setiap bid harus lebih rendah dari harga sebelumnya.';
+    $('vendorTeknis').textContent = v.teknisRevealed ? ('Skor teknis tertimbang: ' + fmtNum(v.teknis,2) + ' pt (dari maks. 4)') : '';
+    $('vendorHps').textContent = '';
+    $('vendorHargaAwal').textContent = 'Harga penawaran awal anda ' + fmtMoney(v.hargaAwal);
 
     const r = v.currentRound;
     if(!r){
@@ -254,7 +254,7 @@
       $('priceInput').placeholder = 'Di bawah ' + fmtMoney(r.currentPrice || v.hargaAwal);
       $('lockedNote').textContent = '';
       if(r.mySubmitted){
-        $('lockedNote').textContent = 'Penawaran ronde ini sudah tercatat. Anda dapat mengirim ulang untuk memperbarui (harga baru harus lebih rendah dari ronde sebelumnya).';
+        $('lockedNote').textContent = 'Penawaran ronde ini sudah tercatat.';
       }
     } else {
       $('roundLabel').textContent = 'Ronde ' + r.num;
@@ -296,6 +296,22 @@
     const normalized = String(value).replace(/^Rp\s*/i,'').replace(/\./g,'').replace(',','.');
     const parsed = Number(normalized);
     return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  setInterval(()=>{ if(lastView) render(lastView); }, 1000); // smooth countdown between polls
+})();
+</script>
+</body>
+</html>
+    const referencePrice = lastView?.currentRound?.currentPrice || lastView?.ownPriceHistory?.slice(-1)[0]?.price || lastView?.hargaAwal;
+    const value = parseMoneyInput($('priceInput').value);
+    if(value && referencePrice && value >= referencePrice){
+      $('bidHint').textContent = 'Harga harus lebih rendah dari penawaran sebelumnya.';
+      $('bidHint').classList.remove('hidden');
+    } else {
+      $('bidHint').textContent = '';
+      $('bidHint').classList.add('hidden');
+    }
   }
 
   setInterval(()=>{ if(lastView) render(lastView); }, 1000); // smooth countdown between polls
