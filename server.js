@@ -315,6 +315,9 @@ const server = http.createServer(async (req, res) => {
   if (p === '/vendor') {
     return serveStatic(res, path.join(__dirname, 'vendor.html'), 'text/html; charset=utf-8');
   }
+  if (p === '/README.md' || p === '/readme.md' || p === '/readme') {
+    return serveStatic(res, path.join(__dirname, 'README.md'), 'text/markdown; charset=utf-8');
+  }
 
   // ---- API: buat sesi baru (Panitia) ----
   if (p === '/api/sessions' && req.method === 'POST') {

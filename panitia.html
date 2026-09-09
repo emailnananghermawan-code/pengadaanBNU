@@ -19,7 +19,7 @@
   header.masthead{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:1px solid var(--line);padding-bottom:18px;margin-bottom:28px;gap:16px;flex-wrap:wrap;}
   header.masthead h1{font-size:22px;font-weight:600;margin:0 0 4px;}
   header.masthead p{margin:0;color:var(--text-dim);font-size:13.5px;max-width:560px;line-height:1.5;}
-  .reset-btn{background:none;border:1px solid var(--line);color:var(--text-dim);padding:8px 14px;border-radius:var(--radius);font-family:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap;}
+  .reset-btn{background:none;border:1px solid var(--line);color:var(--text-dim);padding:8px 14px;border-radius:var(--radius);font-family:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;}
   .reset-btn:hover{border-color:var(--text-dim);color:var(--text);}
   section{margin-bottom:32px;}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:22px;}
@@ -101,7 +101,10 @@
       <h1 id="tenderTitle">Pengadaan BNU</h1>
       <p id="tenderDescription">Panitia mengontrol ronde; setiap vendor mengirim penawaran dari perangkat masing-masing melalui link Peserta.</p>
     </div>
-    <button class="reset-btn no-print" id="btnNewSession">Mulai Sesi Baru</button>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+      <a class="reset-btn no-print" href="/README.md" download>Unduh Panduan</a>
+      <button class="reset-btn no-print" id="btnNewSession">Mulai Sesi Baru</button>
+    </div>
   </header>
 
   <section id="setupPhase">
