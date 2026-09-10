@@ -203,7 +203,15 @@ function computeCumulativeScore(session, vendorId, includeActiveRound = true) {
 function buildAdminView(session) {
   const prices = Object.fromEntries(session.vendors.map((vendor) => [vendor.id, effectivePrice(session, vendor.id)]));
   const sc = computeScores(prices, session);
-  const leaderboard = session.vendors.map((vendor) => ({ id: vendor.id, name: vendor.name, teknis: vendor.teknis, price: prices[vendor.id], score: prices[vendor.id] != null ? sc.scores[vendor.id][...]
+  const leaderboard = session.vendors.map((vendor) => ({ 
+    id: vendor.id, 
+    name: vendor.name, 
+    teknis: vendor.teknis, 
+    price: prices[vendor.id], 
+    score: prices[vendor.id] != null ? sc.scores[vendor.id] : null,
+    total: totalMerit(vendor.teknis, prices[vendor.id] != null ? sc.scores[vendor.id] : 0, prices[vendor.id] != null),
+    hps: priceStatus(prices[vendor.id], session),
+  }))
     .map((r) => ({ ...r, hps: priceStatus(r.price, session) }))
     .sort((a, b) => {
       if (a.hps.eligible !== b.hps.eligible) return a.hps.eligible ? -1 : 1;
@@ -527,7 +535,14 @@ const server = http.createServer(async (req, res) => {
 
       const prices = Object.fromEntries(session.vendors.map((vendor) => [vendor.id, lastClosedPrice(session, vendor.id)]));
       const sc = computeScores(prices, session);
-      const rows = session.vendors.map((vendor) => ({ id: vendor.id, name: vendor.name, teknis: vendor.teknis, price: prices[vendor.id], score: prices[vendor.id] != null ? sc.scores[vendor.id] : [...]
+      const rows = session.vendors.map((vendor) => ({ 
+        id: vendor.id, 
+        name: vendor.name, 
+        teknis: vendor.teknis, 
+        price: prices[vendor.id], 
+        score: prices[vendor.id] != null ? sc.scores[vendor.id] : null,
+        total: totalMerit(vendor.teknis, prices[vendor.id] != null ? sc.scores[vendor.id] : 0, prices[vendor.id] != null),
+      }))
         .map((r) => ({ ...r, hps: priceStatus(r.price, session) }))
         .sort((a, b) => {
           if (a.hps.eligible !== b.hps.eligible) return a.hps.eligible ? -1 : 1;
