@@ -145,12 +145,65 @@ function closeRoundInternal(session, round) {
 }
 
 // ---------------------------------------------------------------------------
+// FUNGSI BARU: Hitung Cumulative Score dari Semua Ronde
+// Dengan asumsi jika belum input di ronde aktif, gunakan harga sebelumnya
+// ---------------------------------------------------------------------------
+function computeCumulativeScore(session, vendorId, includeActiveRound = true) {
+  let totalHargaScore = 0;
+  let roundsWithPrice = 0;
+  const vendor = session.vendors.find(v => v.id === vendorId);
+  
+  // Hitung score dari semua ronde yang SUDAH DITUTUP
+  for (const round of session.rounds) {
+    if (round.status === 'closed') {
+      const price = round.bids[vendorId];
+      if (price != null) {
+        const sc = computeScores(round.bids, session);
+        totalHargaScore += sc.scores[vendorId] || 0;
+        roundsWithPrice++;
+      }
+    }
+  }
+
+  // Hitung score dari ronde AKTIF (dengan fallback ke harga sebelumnya jika belum submit)
+  const activeRound = currentRound(session);
+  if (includeActiveRound && activeRound && activeRound.status === 'active') {
+    let priceForActive = activeRound.bids[vendorId];
+    
+    // Jika belum input di ronde aktif, gunakan harga ronde sebelumnya
+    if (priceForActive == null) {
+      priceForActive = lastClosedPrice(session, vendorId);
+    }
+    
+    if (priceForActive != null) {
+      // Untuk perhitungan score, kita perlu bids dengan asumsi harga tersebut
+      const bidsWithFallback = { ...activeRound.bids };
+      bidsWithFallback[vendorId] = priceForActive;
+      
+      const sc = computeScores(bidsWithFallback, session);
+      totalHargaScore += sc.scores[vendorId] || 0;
+      roundsWithPrice++;
+    }
+  }
+
+  // Teknis score (tetap sama, tidak dijumlah per ronde)
+  const cumulativeTeknis = vendor ? vendor.teknis : 0;
+
+  return {
+    totalHargaScore,
+    totalTeknis: cumulativeTeknis,
+    roundsWithPrice,
+    cumulativeTotal: cumulativeTeknis + totalHargaScore,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // BANGUN RESPON UNTUK PANITIA (data lengkap kedua vendor)
 // ---------------------------------------------------------------------------
 function buildAdminView(session) {
   const prices = Object.fromEntries(session.vendors.map((vendor) => [vendor.id, effectivePrice(session, vendor.id)]));
   const sc = computeScores(prices, session);
-  const leaderboard = session.vendors.map((vendor) => ({ id: vendor.id, name: vendor.name, teknis: vendor.teknis, price: prices[vendor.id], score: prices[vendor.id] != null ? sc.scores[vendor.id] : null, total: totalMerit(vendor.teknis, sc.scores[vendor.id], prices[vendor.id] != null) }))
+  const leaderboard = session.vendors.map((vendor) => ({ id: vendor.id, name: vendor.name, teknis: vendor.teknis, price: prices[vendor.id], score: prices[vendor.id] != null ? sc.scores[vendor.id][...]
     .map((r) => ({ ...r, hps: priceStatus(r.price, session) }))
     .sort((a, b) => {
       if (a.hps.eligible !== b.hps.eligible) return a.hps.eligible ? -1 : 1;
@@ -202,18 +255,50 @@ function buildVendorView(session, vendor) {
 
   let lastStatus = null;
   let liveStatus = null;
+  
   if (round && round.status === 'active') {
-    const ev = evaluateRound(session, round);
-    const mine = ev.candidates.find((candidate) => candidate.id === vendor.id);
-    const eligible = ev.candidates.filter((candidate) => candidate.hps.eligible && candidate.price != null);
-    const submitted = mine.price != null;
+    const submitted = round.bids[vendor.id] != null;
+    
+    // ✨ BARU: Hitung cumulative score dari SEMUA ronde (closed + active)
+    // Dengan asumsi jika belum submit di ronde aktif, gunakan harga sebelumnya
+    const allVendorsCumulativeScores = session.vendors.map(v => {
+      const cumScore = computeCumulativeScore(session, v.id, true); // include active round dengan fallback
+      return {
+        id: v.id,
+        name: v.name,
+        cumulativeTotal: cumScore.cumulativeTotal,
+      };
+    });
+
+    // Hitung HPS status berdasarkan harga efektif (actual atau fallback)
+    const effectivePriceForVendor = round.bids[vendor.id] != null ? round.bids[vendor.id] : lastClosedPrice(session, vendor.id);
+    const hpsStatusForVendor = priceStatus(effectivePriceForVendor, session);
+
+    // Urutkan berdasarkan cumulative score (tertinggi dulu)
+    const sortedByScore = allVendorsCumulativeScores.sort((a, b) => b.cumulativeTotal - a.cumulativeTotal);
+    
+    // Vendor unggul jika:
+    // 1. Memenuhi HPS (berdasarkan harga efektif: actual input OR fallback ke ronde sebelumnya)
+    // 2. Memiliki cumulative score tertinggi dari ALL vendor
+    // (tidak perlu syarat "sudah submit" karena fallback ke harga sebelumnya)
+    const isLeading = hpsStatusForVendor.eligible && sortedByScore[0]?.id === vendor.id;
+    
+    const myCumulativeScore = computeCumulativeScore(session, vendor.id, true);
+
     liveStatus = {
       round: round.num,
       submitted,
-      unggulSementara: submitted && mine.hps.eligible && eligible[0]?.id === vendor.id,
-      label: submitted && mine.hps.eligible && eligible[0]?.id === vendor.id ? 'Unggul sementara' : 'Belum unggul',
+      unggulSementara: isLeading,
+      label: isLeading ? 'Unggul sementara' : 'Belum unggul',
+      cumulativeScore: myCumulativeScore.cumulativeTotal,
+      cumulativeBreakdown: {
+        teknis: myCumulativeScore.totalTeknis,
+        harga: myCumulativeScore.totalHargaScore,
+        roundsWithPrice: myCumulativeScore.roundsWithPrice,
+      },
     };
   }
+  
   const lastClosed = [...session.rounds].reverse().find((r) => r.status === 'closed');
   if (lastClosed) {
     const ev = evaluateRound(session, lastClosed);
@@ -442,7 +527,7 @@ const server = http.createServer(async (req, res) => {
 
       const prices = Object.fromEntries(session.vendors.map((vendor) => [vendor.id, lastClosedPrice(session, vendor.id)]));
       const sc = computeScores(prices, session);
-      const rows = session.vendors.map((vendor) => ({ id: vendor.id, name: vendor.name, teknis: vendor.teknis, price: prices[vendor.id], score: prices[vendor.id] != null ? sc.scores[vendor.id] : null, total: totalMerit(vendor.teknis, sc.scores[vendor.id], prices[vendor.id] != null) }))
+      const rows = session.vendors.map((vendor) => ({ id: vendor.id, name: vendor.name, teknis: vendor.teknis, price: prices[vendor.id], score: prices[vendor.id] != null ? sc.scores[vendor.id] : [...]
         .map((r) => ({ ...r, hps: priceStatus(r.price, session) }))
         .sort((a, b) => {
           if (a.hps.eligible !== b.hps.eligible) return a.hps.eligible ? -1 : 1;
