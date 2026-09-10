@@ -140,6 +140,7 @@
   let code = null, token = null;
   let pollTimer = null;
   let lastView = null;
+  let clockOffset = 0; // serverTime - clientTime (ms)
 
   function apiBase(){ return (base || window.location.origin).replace(/\/+$/, ''); }
   function formatMoneyInput(value){
@@ -196,6 +197,10 @@
     try{
       const v = await api('/api/sessions/'+code+'/vendor?token='+encodeURIComponent(token), {method:'GET'});
       lastView = v;
+      // compute clock offset to account for server/client clock skew
+      if (typeof v.now === 'number') {
+        clockOffset = v.now - Date.now();
+      }
       render(v);
     }catch(e){ /* diamkan error transient */ }
   }
@@ -239,8 +244,9 @@
     } else if(r.status === 'active'){
       $('roundLabel').textContent = 'Ronde ' + r.num;
       $('roundPill').textContent = 'berlangsung'; $('roundPill').className = 'statuspill active';
-      const remainMs = Math.max(0, r.deadlineAt - Date.now());
-      const totalSec = Math.round(remainMs/1000);
+      // use server-based offset so client clock skew won't break countdown
+      const remainMs = Math.max(0, r.deadlineAt - (Date.now() + clockOffset));
+      const totalSec = Math.max(0, Math.ceil(remainMs/1000));
       const m = Math.floor(totalSec/60), s = totalSec%60;
       $('countdown').textContent = String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
       $('countdown').className = 'countdown mono' + (totalSec<=60?' danger':totalSec<=180?' warn':'');
